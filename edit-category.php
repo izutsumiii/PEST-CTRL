@@ -1,7 +1,7 @@
 <?php
 require_once 'includes/header.php';
 require_once 'config/database.php';
-
+//Test
 requireSeller();
 
 $userId = $_SESSION['user_id'];
