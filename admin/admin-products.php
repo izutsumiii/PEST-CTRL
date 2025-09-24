@@ -217,45 +217,46 @@ foreach ($statusList as $status) {
 ?>
 
 <style>
-.admin-header {
-    background: linear-gradient(135deg, #2c3e50, #34495e);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
+/* removed admin-header container styling (no boxed header) */
 
 .admin-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
+    gap: 12px;
+    margin-bottom: 16px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 14px;
 }
 
 .stat-card {
-    background: white;
-    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 12px;
     border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     text-align: center;
-    border-left: 4px solid #3498db;
+    border-left: 3px solid #007bff;
+    color: #F9F9F9;
 }
 
-.stat-card.pending { border-left-color: #f39c12; }
-.stat-card.active { border-left-color: #27ae60; }
-.stat-card.rejected { border-left-color: #e74c3c; }
-.stat-card.suspended { border-left-color: #95a5a6; }
+.stat-card.pending { border-left-color: #007bff; }
+.stat-card.active { border-left-color: #28a745; }
+.stat-card.rejected { border-left-color: #dc3545; }
+.stat-card.suspended { border-left-color: #6c757d; }
 
 .stat-number {
-    font-size: 2em;
-    font-weight: bold;
-    color: #2c3e50;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #F9F9F9;
 }
 
 .stat-label {
-    color: #7f8c8d;
+    color: rgba(249, 249, 249, 0.75);
     text-transform: uppercase;
-    font-size: 0.9em;
+    font-size: 0.75em;
+    letter-spacing: 0.3px;
 }
 
 .admin-filters {
@@ -326,6 +327,7 @@ foreach ($statusList as $status) {
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     border-collapse: collapse;
+    margin: 0 auto;
 }
 
 .admin-table th {
@@ -532,10 +534,7 @@ foreach ($statusList as $status) {
 }
 </style>
 
-<div class="admin-header">
-    <h1><i class="fas fa-box"></i> Product Management</h1>
-    <p>Manage and moderate products from sellers</p>
-</div>
+<h1 style="margin: 10px 0 6px 0; font-size: 56px; line-height: 1.1;"><i class="fas fa-box"></i> Product Management</h1>
 
 <!-- Statistics Cards -->
 <div class="admin-stats">
@@ -669,29 +668,25 @@ foreach ($statusList as $status) {
                                 
                                 <?php if ($product['status'] === 'pending'): ?>
                                     <a href="admin-products.php?action=approve&id=<?php echo $product['id']; ?>&<?php echo http_build_query(['status' => $statusFilter, 'page' => $page, 'search' => $searchTerm]); ?>" 
-                                       class="btn-approve" title="Approve Product"
-                                       onclick="return confirm('Are you sure you want to approve this product?')">
+                                       class="btn-approve" title="Approve Product" data-confirm="Approve this product?">
                                         <i class="fas fa-check"></i> Approve
                                     </a>
                                     <a href="admin-products.php?action=reject&id=<?php echo $product['id']; ?>&<?php echo http_build_query(['status' => $statusFilter, 'page' => $page, 'search' => $searchTerm]); ?>" 
-                                       class="btn-reject" title="Reject Product"
-                                       onclick="return confirm('Are you sure you want to reject this product?')">
+                                       class="btn-reject" title="Reject Product" data-confirm="Reject this product?">
                                         <i class="fas fa-times"></i> Reject
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if ($product['status'] === 'active'): ?>
                                     <a href="admin-products.php?action=suspend&id=<?php echo $product['id']; ?>&<?php echo http_build_query(['status' => $statusFilter, 'page' => $page, 'search' => $searchTerm]); ?>" 
-                                       class="btn-suspend" title="Suspend Product"
-                                       onclick="return confirm('Are you sure you want to suspend this product?')">
+                                       class="btn-suspend" title="Suspend Product" data-confirm="Suspend this product?">
                                         <i class="fas fa-pause"></i> Suspend
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if (in_array($product['status'], ['rejected', 'suspended'])): ?>
                                     <a href="admin-products.php?action=reactivate&id=<?php echo $product['id']; ?>&<?php echo http_build_query(['status' => $statusFilter, 'page' => $page, 'search' => $searchTerm]); ?>" 
-                                       class="btn-reactivate" title="Reactivate Product"
-                                       onclick="return confirm('Are you sure you want to reactivate this product?')">
+                                       class="btn-reactivate" title="Reactivate Product" data-confirm="Reactivate this product?">
                                         <i class="fas fa-play"></i> Reactivate
                                     </a>
                                 <?php endif; ?>
@@ -702,8 +697,7 @@ foreach ($statusList as $status) {
                                 </button>
                                 
                                 <a href="admin-products.php?action=delete&id=<?php echo $product['id']; ?>&<?php echo http_build_query(['status' => $statusFilter, 'page' => $page, 'search' => $searchTerm]); ?>" 
-                                   class="btn-delete" title="Delete Product"
-                                   onclick="return confirm('Are you sure you want to permanently delete this product? This action cannot be undone!')">
+                                   class="btn-delete" title="Delete Product" data-confirm="Permanently delete this product? This cannot be undone!">
                                     <i class="fas fa-trash"></i> Delete
                                 </a>
                             </div>

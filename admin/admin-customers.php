@@ -201,8 +201,8 @@ function getCustomerOrderCount($pdo, $customerId) {
     <?php if (empty($customers)): ?>
         <p><?php echo !empty($searchTerm) ? 'No customers found matching your search.' : 'No customers found.'; ?></p>
     <?php else: ?>
-        <div class="table-container">
-            <table class="admin-table">
+        <div class="table-container" style="padding: 0 8px;">
+            <table class="admin-table" style="margin: 0 auto;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -246,27 +246,24 @@ function getCustomerOrderCount($pdo, $customerId) {
                             <td>
                                 <div class="action-buttons">
                                     <a href="user-details.php?id=<?php echo $customer['id']; ?>" 
-                                       class="btn-view" title="View Customer Details">View Details</a>
+                                       class="btn-view" title="View Customer Details"><i class="fas fa-eye"></i> View</a>
                                     
                                     <?php if ($columnExists): ?>
                                         <?php if ($customer['active_status']): ?>
                                             <a href="admin-customers.php?action=deactivate&id=<?php echo $customer['id']; ?>&page=<?php echo $page; ?>" 
-                                               class="btn-deactivate" title="Deactivate Customer"
-                                               onclick="return confirm('Are you sure you want to deactivate this customer?')">
-                                               Deactivate
+                                               class="btn-deactivate" title="Deactivate Customer" data-confirm="Deactivate this customer?">
+                                               <i class="fas fa-user-slash"></i> Deactivate
                                             </a>
                                         <?php else: ?>
                                             <a href="admin-customers.php?action=activate&id=<?php echo $customer['id']; ?>&page=<?php echo $page; ?>" 
-                                               class="btn-activate" title="Activate Customer"
-                                               onclick="return confirm('Are you sure you want to activate this customer?')">
-                                               Activate
+                                               class="btn-activate" title="Activate Customer" data-confirm="Activate this customer?">
+                                               <i class="fas fa-user-check"></i> Activate
                                             </a>
                                         <?php endif; ?>
                                         
                                         <a href="admin-customers.php?action=delete&id=<?php echo $customer['id']; ?>&page=<?php echo $page; ?>" 
-                                           class="btn-delete" title="Delete Customer"
-                                           onclick="return confirm('Are you sure you want to delete this customer? This action cannot be undone. Note: Customers with orders cannot be deleted.')">
-                                           Delete
+                                           class="btn-delete" title="Delete Customer" data-confirm="Delete this customer? This cannot be undone.">
+                                           <i class="fas fa-trash"></i> Delete
                                         </a>
                                     <?php else: ?>
                                         <span class="btn-disabled" title="Database column missing">Action unavailable</span>

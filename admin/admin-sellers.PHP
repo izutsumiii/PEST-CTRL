@@ -156,7 +156,7 @@ $totalPages = ceil($totalSellers / $limit);
     <?php if (empty($sellers)): ?>
         <p>No sellers found.</p>
     <?php else: ?>
-        <table class="admin-table">
+        <table class="admin-table" style="margin: 0 auto;">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -193,27 +193,27 @@ $totalPages = ceil($totalSellers / $limit);
                         <td>
                             <div class="action-buttons">
                                 <?php if ($seller['seller_status'] === 'pending'): ?>
-                                    <a href="admin-sellers.php?action=approve&id=<?php echo $seller['id']; ?>" class="btn-approve">Approve</a>
-                                    <a href="admin-sellers.php?action=reject&id=<?php echo $seller['id']; ?>" class="btn-reject">Reject</a>
+                                    <a href="admin-sellers.php?action=approve&id=<?php echo $seller['id']; ?>" class="btn-approve" data-confirm="Approve this seller?"><i class="fas fa-check"></i> Approve</a>
+                                    <a href="admin-sellers.php?action=reject&id=<?php echo $seller['id']; ?>" class="btn-reject" data-confirm="Reject this seller?"><i class="fas fa-times"></i> Reject</a>
                                 <?php endif; ?>
                                 
                                 <?php if ($seller['seller_status'] === 'approved'): ?>
-                                    <a href="admin-sellers.php?action=suspend&id=<?php echo $seller['id']; ?>" class="btn-suspend">Suspend</a>
+                                    <a href="admin-sellers.php?action=suspend&id=<?php echo $seller['id']; ?>" class="btn-suspend" data-confirm="Suspend this seller?"><i class="fas fa-pause"></i> Suspend</a>
                                 <?php endif; ?>
                                 
                                 <?php if (in_array($seller['seller_status'], ['approved', 'suspended'])): ?>
-                                    <a href="admin-sellers.php?action=ban&id=<?php echo $seller['id']; ?>" class="btn-ban">Ban</a>
+                                    <a href="admin-sellers.php?action=ban&id=<?php echo $seller['id']; ?>" class="btn-ban" data-confirm="Ban this seller?"><i class="fas fa-ban"></i> Ban</a>
                                 <?php endif; ?>
                                 
                                 <?php if ($seller['document_path'] && !$seller['document_verified']): ?>
-                                    <a href="admin-sellers.php?action=verify_documents&id=<?php echo $seller['id']; ?>" class="btn-verify">Verify Docs</a>
+                                    <a href="admin-sellers.php?action=verify_documents&id=<?php echo $seller['id']; ?>" class="btn-verify" data-confirm="Verify this seller's documents?"><i class="fas fa-check-double"></i> Verify Docs</a>
                                 <?php endif; ?>
                                 
                                 <?php if ($seller['document_verified']): ?>
-                                    <a href="admin-sellers.php?action=unverify_documents&id=<?php echo $seller['id']; ?>" class="btn-unverify">Unverify Docs</a>
+                                    <a href="admin-sellers.php?action=unverify_documents&id=<?php echo $seller['id']; ?>" class="btn-unverify" data-confirm="Remove document verification?"><i class="fas fa-undo"></i> Unverify Docs</a>
                                 <?php endif; ?>
                                 
-                                <button onclick="openDocumentModal(<?php echo $seller['id']; ?>)" class="btn-upload">Upload Doc</button>
+                                <button onclick="openDocumentModal(<?php echo $seller['id']; ?>)" class="btn-upload"><i class="fas fa-upload"></i> Upload Doc</button>
                             </div>
                         </td>
                     </tr>
