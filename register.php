@@ -45,25 +45,26 @@ function sendOTPEmail($email, $name, $otp) {
         $mail->Port = 465;
         
         // Recipients
-        $mail->setFrom('jhongujol1299@gmail.com', 'E-Commerce Store');
+        $mail->setFrom('jhongujol1299@gmail.com', 'PEST-CTRL Store');
         $mail->addAddress($email, $name);
         
         // Content
         $mail->isHTML(true);
-        $mail->Subject = '🔐 Email Verification - Your OTP Code';
+        $mail->Subject = '🔐 Email Verification - Your OTP Code | PEST-CTRL';
         $mail->Body = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'>
             <div style='text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 20px;'>
-                <h1 style='color: #007bff; margin: 0;'>Email Verification</h1>
+                <h1 style='color: #007bff; margin: 0;'>🐛 PEST-CTRL</h1>
+                <p style='color: #666; font-size: 18px; margin: 5px 0;'>Email Verification</p>
             </div>
             <div style='padding: 30px 0; text-align: center;'>
                 <h2 style='color: #333; margin-bottom: 20px;'>Hello $name,</h2>
-                <p style='color: #666; font-size: 16px;'>Your OTP verification code is:</p>
+                <p style='color: #666; font-size: 16px;'>Welcome to PEST-CTRL! Your OTP verification code is:</p>
                 <div style='background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 30px; border-radius: 10px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);'>
                     <h1 style='font-size: 36px; letter-spacing: 8px; margin: 0; font-family: \"Courier New\", monospace;'>$otp</h1>
                 </div>
                 <p style='color: #666; font-size: 16px; line-height: 1.5;'>
-                    Please enter this 6-digit code to verify your email address.<br>
+                    Please enter this 6-digit code to verify your email address and complete your registration.<br>
                     <strong>This code will expire in 10 minutes.</strong>
                 </p>
                 <div style='background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;'>
@@ -74,7 +75,7 @@ function sendOTPEmail($email, $name, $otp) {
             </div>
             <div style='text-align: center; border-top: 1px solid #eee; padding-top: 20px; color: #999; font-size: 14px;'>
                 <p>If you didn't request this verification, please ignore this email.</p>
-                <p style='margin: 0;'>© 2024 Your E-Commerce Store</p>
+                <p style='margin: 0;'>© 2024 PEST-CTRL - Professional Pest Control Solutions</p>
             </div>
         </div>";
         
@@ -132,8 +133,8 @@ if (isset($_POST['verify_otp'])) {
                 $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
                 
                 // Insert new user (email is already verified via OTP)
-                $stmt = $pdo->prepare("INSERT INTO users (username, email, password, first_name, last_name, user_type, email_verified)
-                                       VALUES (?, ?, ?, ?, ?, ?, 1)");
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, password, first_name, last_name, user_type, email_verified, agreed_to_terms, agreed_to_privacy)
+                                       VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)");
                 $result = $stmt->execute([
                     $userData['username'], 
                     $userData['email'], 
@@ -150,7 +151,7 @@ if (isset($_POST['verify_otp'])) {
                     unset($_SESSION['otp_email']);
                     unset($_SESSION['otp_timestamp']);
                     
-                    $_SESSION['success'] = "Registration successful! Your account has been created and verified.";
+                    $_SESSION['success'] = "Registration successful! Welcome to PEST-CTRL. Your account has been created and verified.";
                     header("Location: login.php");
                     exit();
                 } else {
@@ -230,6 +231,16 @@ if (isset($_POST['register'])) {
             }
         }
         
+        // Check Terms & Conditions agreement
+        if (!isset($_POST['agree_terms']) || $_POST['agree_terms'] !== '1') {
+            $errors[] = "You must agree to the Terms & Conditions to create an account.";
+        }
+        
+        // Check Privacy Policy agreement
+        if (!isset($_POST['agree_privacy']) || $_POST['agree_privacy'] !== '1') {
+            $errors[] = "You must agree to the Privacy Policy to create an account.";
+        }
+        
         // Check if username or email already exists
         if (empty($errors)) {
             $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR email = ?");
@@ -266,7 +277,7 @@ if (isset($_POST['register'])) {
             $name = $firstName . ' ' . $lastName;
             if (sendOTPEmail($email, $name, $_SESSION['registration_otp'])) {
                 $showOtpForm = true;
-                $success = "Registration form submitted! Please check your email for the OTP code.";
+                $success = "Registration form submitted! Please check your email for the OTP code to complete your PEST-CTRL account setup.";
             } else {
                 $error = "Failed to send verification email. Please try again.";
             }
@@ -286,7 +297,7 @@ require_once 'includes/header.php';
 <div class="register-container">
     <div class="register-header">
         <h1><i class="fas fa-user-plus"></i> Create Account</h1>
-        <div class="subtitle">Join PEST-CTRL today</div>
+        <div class="subtitle">Join PEST-CTRL today - Professional Pest Control Solutions</div>
     </div>
 
     <?php if (isset($error)): ?>
@@ -349,19 +360,57 @@ require_once 'includes/header.php';
         <label for="user_type">Account Type:</label>
         <select id="user_type" name="user_type">
             <option value="customer" <?php echo (isset($_POST['user_type']) && $_POST['user_type'] == 'customer') ? 'selected' : ''; ?>>Customer</option>
-            <option value="seller" <?php echo (isset($_POST['user_type']) && $_POST['user_type'] == 'seller') ? 'selected' : ''; ?>>Seller</option>
+            <option value="seller" <?php echo (isset($_POST['user_type']) && $_POST['user_type'] == 'seller') ? 'selected' : ''; ?>>Seller/Supplier</option>
         </select>
     </div>
     
-    <button type="submit" name="register" id="registerButton">Register</button>
+    <!-- Terms & Conditions and Privacy Policy Section -->
+    <div class="legal-agreements">
+        <h3><i class="fas fa-file-contract"></i> Legal Agreements</h3>
+        <p class="legal-notice">Please read and agree to the following before creating your account:</p>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="agree_terms" name="agree_terms" value="1" required>
+                <span class="checkmark"></span>
+                <span class="checkbox-text">
+                    I agree to the <a href="terms-conditions.php" target="_blank" class="legal-link">Terms & Conditions</a>
+                </span>
+            </label>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="agree_privacy" name="agree_privacy" value="1" required>
+                <span class="checkmark"></span>
+                <span class="checkbox-text">
+                    I agree to the <a href="privacy-policy.php" target="_blank" class="legal-link">Privacy Policy</a>
+                </span>
+            </label>
+        </div>
+        
+        <div class="legal-info">
+            <p><i class="fas fa-info-circle"></i> <strong>Important:</strong> By creating an account, you acknowledge that:</p>
+            <ul>
+                <li>You are at least 18 years old or have parental consent</li>
+                <li>You will use pesticide products responsibly and according to label instructions</li>
+                <li>You understand the safety requirements for handling pest control products</li>
+                <li>You agree to comply with local regulations regarding pesticide use</li>
+            </ul>
+        </div>
+    </div>
+    
+    <button type="submit" name="register" id="registerButton" disabled>
+        <i class="fas fa-user-plus"></i> Create Account
+    </button>
 </form>
 
 <?php else: ?>
 <!-- OTP Verification Form -->
 <div id="otpverify" class="otp-container">
-    <h2>Email Verification</h2>
+    <h2><i class="fas fa-envelope-open-text"></i> Email Verification</h2>
     <p>We've sent a 6-digit OTP code to <strong><?php echo htmlspecialchars($_SESSION['otp_email']); ?></strong></p>
-    <p>Please enter the code below to verify your email address:</p>
+    <p>Please enter the code below to verify your email address and complete your PEST-CTRL registration:</p>
     
     <form method="POST" action="">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
@@ -371,10 +420,16 @@ require_once 'includes/header.php';
             <input type="text" id="otp_inp" name="otp" maxlength="6" pattern="[0-9]{6}" required>
         </div>
         
-        <button type="submit" name="verify_otp" id="otp_btn">Verify OTP</button>
+        <button type="submit" name="verify_otp" id="otp_btn">
+            <i class="fas fa-check-circle"></i> Verify OTP
+        </button>
         <div class="button-group">
-            <button type="submit" name="resend_otp" id="resend_otp">Resend OTP</button>
-            <button type="button" id="cancel_otp" onclick="cancelRegistration()">Cancel</button>
+            <button type="submit" name="resend_otp" id="resend_otp">
+                <i class="fas fa-redo"></i> Resend OTP
+            </button>
+            <button type="button" id="cancel_otp" onclick="cancelRegistration()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
         </div>
     </form>
 </div>
@@ -392,6 +447,8 @@ require_once 'includes/header.php';
     --primary-dark: #130325;
     --primary-light: #F9F9F9;
     --accent-yellow: #FFD736;
+    --accent-green: #28a745;
+    --accent-red: #dc3545;
     --border-secondary: rgba(249, 249, 249, 0.3);
     --shadow-dark: rgba(0, 0, 0, 0.3);
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -417,9 +474,9 @@ body {
 }
 
 .register-container {
-    max-width: 380px;
+    max-width: 420px;
     margin: 40px auto;
-    padding: 20px;
+    padding: 25px;
     border: 1px solid var(--border-secondary);
     border-radius: 15px;
     background: linear-gradient(135deg, var(--primary-dark) 0%, rgba(19, 3, 37, 0.95) 100%);
@@ -445,6 +502,7 @@ body {
     font-size: 14px;
     opacity: 0.8;
     margin-top: 5px;
+    line-height: 1.4;
 }
 
 .form-group {
@@ -485,9 +543,9 @@ body {
 }
 
 .otp-container {
-    max-width: 380px;
+    max-width: 420px;
     margin: 20px auto;
-    padding: 20px;
+    padding: 25px;
     border: 1px solid var(--border-secondary);
     border-radius: 15px;
     background: linear-gradient(135deg, var(--primary-dark) 0%, rgba(19, 3, 37, 0.95) 100%);
@@ -508,6 +566,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 5px;
+    color: var(--primary-light);
 }
 
 .password-strength-meter {
@@ -529,6 +588,120 @@ body {
 .password-strength-bar.weak { background-color: #ff4444; }
 .password-strength-bar.medium { background-color: #ffaa00; }
 .password-strength-bar.strong { background-color: #00aa00; }
+
+/* Legal Agreements Section */
+.legal-agreements {
+    background: rgba(249, 249, 249, 0.05);
+    border: 1px solid rgba(249, 249, 249, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 25px 0;
+}
+
+.legal-agreements h3 {
+    color: var(--accent-yellow);
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legal-notice {
+    color: rgba(249, 249, 249, 0.8);
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+.checkbox-group {
+    margin-bottom: 15px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkmark {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background-color: rgba(249, 249, 249, 0.1);
+    border: 2px solid rgba(249, 249, 249, 0.3);
+    border-radius: 4px;
+    margin-right: 10px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label:hover .checkmark {
+    background-color: rgba(249, 249, 249, 0.15);
+}
+
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark:after {
+    content: '✓';
+    position: absolute;
+    top: -2px;
+    left: 2px;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.checkbox-text {
+    flex: 1;
+}
+
+.legal-link {
+    color: var(--accent-yellow);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.legal-link:hover {
+    color: var(--primary-light);
+}
+
+.legal-info {
+    background: rgba(255, 215, 54, 0.1);
+    border: 1px solid rgba(255, 215, 54, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.legal-info p {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    color: rgba(249, 249, 249, 0.9);
+}
+
+.legal-info ul {
+    margin: 0;
+    padding-left: 15px;
+    font-size: 11px;
+    color: rgba(249, 249, 249, 0.8);
+    line-height: 1.4;
+}
+
+.legal-info li {
+    margin-bottom: 5px;
+}
 
 .success-message {
     background: rgba(40, 167, 69, 0.2);
@@ -575,6 +748,10 @@ body {
     cursor: pointer;
     flex: 1;
     max-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 #resend_otp:hover {
@@ -590,6 +767,10 @@ body {
     cursor: pointer;
     flex: 1;
     max-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 #cancel_otp:hover {
@@ -599,21 +780,33 @@ body {
 /* Main form buttons */
 button[type="submit"] {
     width: 100%;
-    padding: 8px 16px;
+    padding: 12px 16px;
     background-color: #FFD736;
     color: #130325;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
     text-align: center;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 button[type="submit"]:hover:not(:disabled) {
     background-color: #e6c230;
+    transform: translateY(-1px);
+}
+
+button[type="submit"]:disabled {
+    background-color: #666;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .login-link {
@@ -630,6 +823,27 @@ button[type="submit"]:hover:not(:disabled) {
 .login-link a:hover {
     color: var(--primary-light);
     text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .register-container {
+        margin: 20px;
+        padding: 20px;
+        max-width: none;
+    }
+    
+    .legal-info ul {
+        padding-left: 10px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    #resend_otp, #cancel_otp {
+        max-width: none;
+    }
 }
 </style>
 
@@ -690,6 +904,24 @@ function updatePasswordStrength() {
     strengthText.textContent = 'Password strength: ' + strengthMessage;
 }
 
+// Check if both checkboxes are checked and enable/disable register button
+function checkAgreements() {
+    const termsCheckbox = document.getElementById('agree_terms');
+    const privacyCheckbox = document.getElementById('agree_privacy');
+    const registerButton = document.getElementById('registerButton');
+    
+    if (termsCheckbox && privacyCheckbox && registerButton) {
+        const bothChecked = termsCheckbox.checked && privacyCheckbox.checked;
+        registerButton.disabled = !bothChecked;
+        
+        if (bothChecked) {
+            registerButton.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+        } else {
+            registerButton.innerHTML = '<i class="fas fa-lock"></i> Please agree to terms';
+        }
+    }
+}
+
 // Cancel registration function
 function cancelRegistration() {
     if (confirm('Are you sure you want to cancel registration? You will need to fill out the form again.')) {
@@ -704,10 +936,26 @@ document.addEventListener('DOMContentLoaded', function() {
         registerForm.addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const strength = calculatePasswordStrength(password);
+            const termsChecked = document.getElementById('agree_terms').checked;
+            const privacyChecked = document.getElementById('agree_privacy').checked;
             
+            // Check password strength
             if (strength < 2) {
                 e.preventDefault();
                 alert('Please choose a stronger password. Your password should include uppercase letters, lowercase letters, and numbers.');
+                return false;
+            }
+            
+            // Check agreements
+            if (!termsChecked) {
+                e.preventDefault();
+                alert('Please agree to the Terms & Conditions to create your account.');
+                return false;
+            }
+            
+            if (!privacyChecked) {
+                e.preventDefault();
+                alert('Please agree to the Privacy Policy to create your account.');
                 return false;
             }
         });
@@ -717,6 +965,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (passwordField) {
             passwordField.addEventListener('input', updatePasswordStrength);
         }
+        
+        // Add event listeners for checkbox changes
+        const termsCheckbox = document.getElementById('agree_terms');
+        const privacyCheckbox = document.getElementById('agree_privacy');
+        
+        if (termsCheckbox) {
+            termsCheckbox.addEventListener('change', checkAgreements);
+        }
+        
+        if (privacyCheckbox) {
+            privacyCheckbox.addEventListener('change', checkAgreements);
+        }
+        
+        // Initial check
+        checkAgreements();
     }
     
     // Focus on OTP input if available
@@ -724,5 +987,42 @@ document.addEventListener('DOMContentLoaded', function() {
     if (otpInput) {
         otpInput.focus();
     }
+    
+    // Auto-format OTP input (numbers only)
+    if (otpInput) {
+        otpInput.addEventListener('input', function(e) {
+            // Remove any non-numeric characters
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            
+            // Limit to 6 characters
+            if (e.target.value.length > 6) {
+                e.target.value = e.target.value.slice(0, 6);
+            }
+        });
+        
+        // Handle paste events
+        otpInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const numericPaste = paste.replace(/[^0-9]/g, '').slice(0, 6);
+            e.target.value = numericPaste;
+        });
+    }
+});
+
+// Add smooth animations for form interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate form elements on load
+    const formElements = document.querySelectorAll('.form-group, .legal-agreements');
+    formElements.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            element.style.transition = 'all 0.5s ease';
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
 });
 </script>
