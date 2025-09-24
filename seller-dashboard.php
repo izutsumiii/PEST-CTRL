@@ -63,79 +63,187 @@ $stmt->execute([$userId]);
 $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get recent orders with payment status
-$stmt = $pdo->prepare("SELECT o.*, oi.quantity, oi.price, p.name as product_name, u.username as customer_name,
+$stmt = $pdo->prepare("SELECT o.*, 
+                      oi.quantity, 
+                      oi.price as item_price,
+                      p.name as product_name,
+                      p.image_url as product_image,
+                      p.sku as product_sku,
+                      u.username as customer_name,
+                      u.email as customer_email,
                       CASE 
                         WHEN o.payment_method = 'cod' AND o.status != 'delivered' THEN 'Pending Payment'
                         WHEN o.payment_method = 'cod' AND o.status = 'delivered' THEN 'Paid (COD)'
+                        WHEN o.payment_method = 'stripe' OR o.payment_method = 'paypal' THEN 'Paid Online'
                         ELSE 'Paid'
-                      END as payment_status
+                      END as payment_status,
+                      (oi.price * oi.quantity) as total_amount
                       FROM orders o 
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
                       JOIN users u ON o.user_id = u.id
                       WHERE p.seller_id = ? 
                       ORDER BY o.created_at DESC 
-                      LIMIT 10");
+                      LIMIT 15");
 $stmt->execute([$userId]);
 $recentOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+$currentDate = date('Y-m-d H:i:s');
 // Get sales data for different time periods
 // Last 1 Week
 $stmt = $pdo->prepare("SELECT 
                       DATE(o.created_at) as date,
-                      SUM(oi.price * oi.quantity) as revenue,
+                      COALESCE(SUM(oi.price * oi.quantity), 0) as revenue,
                       COUNT(DISTINCT o.id) as orders
                       FROM orders o 
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ? AND o.created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)
+                      WHERE p.seller_id = ? 
+                      AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                      AND o.created_at <= NOW()
                       GROUP BY DATE(o.created_at)
                       ORDER BY date ASC");
 $stmt->execute([$userId]);
 $weeklySales = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+$weeklyData = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-{$i} days"));
+    $found = false;
+    foreach ($weeklySales as $sale) {
+        if ($sale['date'] === $date) {
+            $weeklyData[] = $sale;
+            $found = true;
+            break;
+        }
+    }
+    if (!$found) {
+        $weeklyData[] = [
+            'date' => $date,
+            'revenue' => '0.00',
+            'orders' => '0'
+        ];
+    }
+}
+$weeklySales = $weeklyData;
 // Last 1 Month
 $stmt = $pdo->prepare("SELECT 
                       DATE(o.created_at) as date,
-                      SUM(oi.price * oi.quantity) as revenue,
+                      COALESCE(SUM(oi.price * oi.quantity), 0) as revenue,
                       COUNT(DISTINCT o.id) as orders
                       FROM orders o 
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ? AND o.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+                      WHERE p.seller_id = ? 
+                      AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                      AND o.created_at <= NOW()
                       GROUP BY DATE(o.created_at)
                       ORDER BY date ASC");
 $stmt->execute([$userId]);
 $monthlySalesDaily = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Last 6 Months
+// Fill missing dates for the month
+$monthlyData = [];
+for ($i = 29; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-{$i} days"));
+    $found = false;
+    foreach ($monthlySalesDaily as $sale) {
+        if ($sale['date'] === $date) {
+            $monthlyData[] = $sale;
+            $found = true;
+            break;
+        }
+    }
+    if (!$found) {
+        $monthlyData[] = [
+            'date' => $date,
+            'revenue' => '0.00',
+            'orders' => '0'
+        ];
+    }
+}
+$monthlySalesDaily = $monthlyData;
+
+// Last 6 Months - Fixed query with proper month handling
 $stmt = $pdo->prepare("SELECT 
                       DATE_FORMAT(o.created_at, '%Y-%m') as month,
-                      SUM(oi.price * oi.quantity) as revenue,
+                      COALESCE(SUM(oi.price * oi.quantity), 0) as revenue,
                       COUNT(DISTINCT o.id) as orders
                       FROM orders o 
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ? AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                      WHERE p.seller_id = ? 
+                      AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                      AND o.created_at <= NOW()
                       GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')
                       ORDER BY month ASC");
 $stmt->execute([$userId]);
 $monthlySales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Last 1 Year
+// Fill missing months for 6 months
+$sixMonthsData = [];
+for ($i = 5; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-{$i} months"));
+    $found = false;
+    foreach ($monthlySales as $sale) {
+        if ($sale['month'] === $month) {
+            $sixMonthsData[] = $sale;
+            $found = true;
+            break;
+        }
+    }
+    if (!$found) {
+        $sixMonthsData[] = [
+            'month' => $month,
+            'revenue' => '0.00',
+            'orders' => '0'
+        ];
+    }
+}
+$monthlySales = $sixMonthsData;
+
+// Last 1 Year - Fixed query
 $stmt = $pdo->prepare("SELECT 
                       DATE_FORMAT(o.created_at, '%Y-%m') as month,
-                      SUM(oi.price * oi.quantity) as revenue,
+                      COALESCE(SUM(oi.price * oi.quantity), 0) as revenue,
                       COUNT(DISTINCT o.id) as orders
                       FROM orders o 
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ? AND o.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+                      WHERE p.seller_id = ? 
+                      AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                      AND o.created_at <= NOW()
                       GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')
                       ORDER BY month ASC");
 $stmt->execute([$userId]);
 $yearlySales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fill missing months for the year
+$yearlyData = [];
+for ($i = 11; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-{$i} months"));
+    $found = false;
+    foreach ($yearlySales as $sale) {
+        if ($sale['month'] === $month) {
+            $yearlyData[] = $sale;
+            $found = true;
+            break;
+        }
+    }
+    if (!$found) {
+        $yearlyData[] = [
+            'month' => $month,
+            'revenue' => '0.00',
+            'orders' => '0'
+        ];
+    }
+}
+$yearlySales = $yearlyData;
+
+// Debug information (remove this in production)
+echo "<!-- Debug Info: Current Date: $currentDate -->";
+echo "<!-- Weekly Sales Count: " . count($weeklySales) . " -->";
+echo "<!-- Monthly Sales Count: " . count($monthlySalesDaily) . " -->";
+echo "<!-- 6 Months Sales Count: " . count($monthlySales) . " -->";
+echo "<!-- Yearly Sales Count: " . count($yearlySales) . " -->";
 // Get top selling products
 $stmt = $pdo->prepare("SELECT p.name, p.id, SUM(oi.quantity) as total_sold, SUM(oi.price * oi.quantity) as revenue
                       FROM products p
@@ -350,7 +458,66 @@ h3 {
     color: #666;
     min-width: 30px;
 }
+.payment-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
+.payment-status.paid { 
+    color: #065f46; 
+    background-color: #d1fae5; 
+}
+
+.payment-status.pending { 
+    color: #92400e; 
+    background-color: #fef3c7; 
+}
+
+.order-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.05em;
+}
+
+.order-status.pending { background-color: #dbeafe; color: #1e40af; }
+.order-status.processing { background-color: #fef3c7; color: #92400e; }
+.order-status.shipped { background-color: #e0e7ff; color: #5b21b6; }
+.order-status.delivered { background-color: #d1fae5; color: #065f46; }
+.order-status.cancelled { background-color: #fee2e2; color: #991b1b; }
+
+.orders-table tbody tr:hover {
+    background-color: #f9fafb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease-in-out;
+}
+
+/* Mobile card hover effect */
+@media (max-width: 768px) {
+    .mobile-order-card {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .mobile-order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Loading animation for product images */
+.product-image-loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 .product-info {
     flex-grow: 1;
 }
@@ -645,54 +812,183 @@ h3 {
         </div>
 
         <!-- Recent Orders -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8" data-aos="fade-up">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Orders</h2>
-            <?php if (empty($recentOrders)): ?>
-                <p class="text-gray-500">No recent orders.</p>
-            <?php else: ?>
-                <div class="table-container">
-                    <table class="orders-table">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Total</th>
-                                <th>Payment Status</th>
-                                <th>Order Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($recentOrders as $order): ?>
-                                <tr>
-                                    <td class="font-mono text-sm">#<?php echo $order['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($order['product_name']); ?></td>
-                                    <td><?php echo $order['quantity']; ?></td>
-                                    <td class="font-semibold">$<?php echo number_format($order['price'] * $order['quantity'], 2); ?></td>
-                                    <td>
-                                        <span class="payment-status <?php echo ($order['payment_method'] == 'cod' && $order['status'] != 'delivered') ? 'pending' : 'paid'; ?>">
-                                            <?php echo $order['payment_status']; ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="order-status <?php echo $order['status']; ?>">
-                                            <?php echo ucfirst($order['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4 text-center">
-                    <a href="seller-orders.php" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-300">View All Orders</a>
-                </div>
-            <?php endif; ?>
+       <div class="bg-white rounded-lg shadow p-6 mb-8" data-aos="fade-up">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-gray-800">Recent Orders</h2>
+        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            <?php echo count($recentOrders); ?> orders
+        </span>
+    </div>
+    
+    <?php if (empty($recentOrders)): ?>
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Recent Orders</h3>
+            <p class="text-gray-500">You haven't received any orders yet. Start promoting your products!</p>
+            <a href="seller-products.php" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition duration-300">
+                Manage Products
+            </a>
         </div>
+    <?php else: ?>
+        <!-- Mobile-friendly card layout for small screens -->
+        <div class="block md:hidden space-y-4">
+            <?php foreach ($recentOrders as $order): ?>
+                <div class="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition duration-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mono text-sm font-bold text-blue-600">#<?php echo $order['id']; ?></span>
+                            <span class="order-status <?php echo $order['status']; ?> text-xs px-2 py-1 rounded-full">
+                                <?php echo ucfirst($order['status']); ?>
+                            </span>
+                        </div>
+                        <span class="text-sm text-gray-500">
+                            <?php echo date('M j, Y', strtotime($order['created_at'])); ?>
+                        </span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <h4 class="font-semibold text-gray-800"><?php echo htmlspecialchars($order['product_name']); ?></h4>
+                        <p class="text-sm text-gray-600">Customer: <?php echo htmlspecialchars($order['customer_name']); ?></p>
+                        <p class="text-sm text-gray-600">Quantity: <?php echo $order['quantity']; ?> × $<?php echo number_format($order['item_price'], 2); ?></p>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="payment-status <?php echo ($order['payment_method'] == 'cod' && $order['status'] != 'delivered') ? 'pending' : 'paid'; ?> text-xs px-2 py-1 rounded">
+                            <?php echo $order['payment_status']; ?>
+                        </span>
+                        <span class="font-bold text-lg text-gray-800">
+                            $<?php echo number_format($order['total_amount'], 2); ?>
+                        </span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Desktop table layout -->
+       <div class="hidden md:block">
+    <!-- Container with fixed height and scrollbars -->
+    <div class="overflow-auto max-h-96 border border-gray-200 rounded-lg shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Order
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Product
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Qty/Price
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php foreach ($recentOrders as $order): ?>
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                <span class="font-mono text-xs font-bold text-blue-600">#<?php echo $order['id']; ?></span>
+                                <?php if (!empty($order['product_sku'])): ?>
+                                    <span class="text-xs text-gray-400">SKU: <?php echo htmlspecialchars($order['product_sku']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        
+                        <td class="px-3 py-2">
+                            <div class="flex items-center space-x-2">
+                                <?php if (!empty($order['product_image'])): ?>
+                                    <img class="w-8 h-8 rounded object-cover" 
+                                         src="<?php echo htmlspecialchars($order['product_image']); ?>" 
+                                         alt="<?php echo htmlspecialchars($order['product_name']); ?>"
+                                         onerror="this.src='placeholder-product.png'">
+                                <?php else: ?>
+                                    <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                        </svg>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate max-w-32" title="<?php echo htmlspecialchars($order['product_name']); ?>">
+                                        <?php echo htmlspecialchars($order['product_name']); ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($order['customer_name']); ?></span>
+                                <span class="text-xs text-gray-400"><?php echo htmlspecialchars($order['customer_email']); ?></span>
+                            </div>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium text-gray-900"><?php echo $order['quantity']; ?> item(s)</span>
+                                <span class="text-xs text-gray-400">$<?php echo number_format($order['item_price'], 2); ?></span>
+                            </div>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span class="font-bold text-sm text-gray-900">
+                                $<?php echo number_format($order['total_amount'], 2); ?>
+                            </span>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span class="payment-status <?php echo ($order['payment_method'] == 'cod' && $order['status'] != 'delivered') ? 'pending' : 'paid'; ?> inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                                <?php echo $order['payment_status']; ?>
+                            </span>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span class="order-status <?php echo $order['status']; ?> inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize">
+                                <?php echo ucfirst($order['status']); ?>
+                            </span>
+                        </td>
+                        
+                        <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                            <div class="flex flex-col">
+                                <span><?php echo date('M j, Y', strtotime($order['created_at'])); ?></span>
+                                <span class="text-xs"><?php echo date('g:i A', strtotime($order['created_at'])); ?></span>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- View All Orders Button -->
+    <div class="mt-4 text-center">
+        <a href="seller-orders.php" 
+           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition duration-300 space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <span>View All Orders</span>
+        </a>
+    </div>
+</div><?php endif; ?>
+</div>
 
         <!-- Quick Actions -->
         <div class="bg-white rounded-lg shadow p-6" data-aos="fade-up">
@@ -761,8 +1057,37 @@ h3 {
         });
 
         // Sales Chart with Real Database Data
-        let salesChart = null;
+       let salesChart = null;
+        let chartUpdateInterval = null;
+        async function fetchLatestSalesData() {
+    try {
+        const response = await fetch('ajax/get-sales-data.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'get_sales_data',
+                seller_id: <?php echo $userId; ?>
+            })
+        });
         
+        if (response.ok) {
+            const data = await response.json();
+            return data;
+        }
+    } catch (error) {
+        console.warn('Failed to fetch latest sales data:', error);
+    }
+    
+    // Fallback to current data if fetch fails
+    return {
+        week: <?php echo json_encode($weeklySales); ?>,
+        month: <?php echo json_encode($monthlySalesDaily); ?>,
+        '6months': <?php echo json_encode($monthlySales); ?>,
+        year: <?php echo json_encode($yearlySales); ?>
+    };
+}
         // Real data from database for all time periods
         const salesDataSets = {
             week: <?php echo json_encode($weeklySales); ?>,
@@ -772,213 +1097,373 @@ h3 {
         };
 
         function formatLabels(data, period) {
-            if (!data || data.length === 0) return [];
-            
-            return data.map(item => {
-                let dateStr = item.date || item.month;
+    if (!data || data.length === 0) return [];
+    
+    return data.map(item => {
+        let dateStr = item.date || item.month;
+        
+        switch(period) {
+            case 'week':
+            case 'month':
+                const date = new Date(dateStr);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
                 
-                switch(period) {
-                    case 'week':
-                    case 'month':
-                        // For daily data, format as "Jan 15"
-                        const date = new Date(dateStr);
-                        return date.toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                        });
-                    case '6months':
-                    case 'year':
-                        // For monthly data, format as "Jan 2024"
-                        const monthDate = new Date(dateStr + '-01');
-                        return monthDate.toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            year: 'numeric' 
-                        });
-                    default:
-                        return dateStr;
+                // Show "Today" and "Yesterday" for recent dates
+                if (date.toDateString() === today.toDateString()) {
+                    return 'Today';
+                } else if (date.toDateString() === yesterday.toDateString()) {
+                    return 'Yesterday';
+                } else {
+                    return date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
                 }
-            });
+                
+            case '6months':
+            case 'year':
+                const monthDate = new Date(dateStr + '-01');
+                const currentMonth = new Date();
+                
+                if (monthDate.getFullYear() === currentMonth.getFullYear() && 
+                    monthDate.getMonth() === currentMonth.getMonth()) {
+                    return 'This Month';
+                } else {
+                    return monthDate.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        year: monthDate.getFullYear() !== currentMonth.getFullYear() ? 'numeric' : undefined 
+                    });
+                }
+                
+            default:
+                return dateStr;
         }
+    });
+}
 
-        function getChartConfig(data, labels, chartType) {
-            const baseConfig = {
-                data: {
-                    labels: labels,
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Revenue ($)'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
+                                    function getChartConfig(data, labels, chartType) {
+                                const baseConfig = {
+                                    data: {
+                                        labels: labels,
+                                        datasets: []
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        interaction: {
+                                            intersect: false,
+                                            mode: 'index'
+                                        },
+                                        plugins: {
+                                            legend: {
+                                                display: true,
+                                                position: 'top',
+                                                labels: {
+                                                    usePointStyle: true,
+                                                    padding: 20
+                                                }
+                                            },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                                titleColor: 'white',
+                                                bodyColor: 'white',
+                                                borderColor: 'rgba(59, 130, 246, 1)',
+                                                borderWidth: 1,
+                                                callbacks: {
+                                                    label: function(context) {
+                                                        const label = context.dataset.label || '';
+                                                        const value = context.parsed.y;
+                                                        
+                                                        if (label.includes('Revenue')) {
+                                                            return label + ': $' + value.toLocaleString('en-US', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2
+                                                            });
+                                                        } else {
+                                                            return label + ': ' + value.toLocaleString();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                type: 'linear',
+                                                display: true,
+                                                position: 'left',
+                                                title: {
+                                                    display: true,
+                                                    text: 'Revenue ($)',
+                                                    font: {
+                                                        weight: 'bold'
+                                                    }
+                                                },
+                                                grid: {
+                                                    color: 'rgba(0, 0, 0, 0.1)',
+                                                    drawBorder: false
+                                                },
+                                                ticks: {
+                                                    callback: function(value) {
+                                                        return '$' + value.toLocaleString();
+                                                    }
+                                                }
+                                            },
+                                            x: {
+                                                grid: {
+                                                    display: false
+                                                },
+                                                ticks: {
+                                                    maxRotation: 45,
+                                                    minRotation: 0
+                                                }
+                                            }
+                                        },
+                                        elements: {
+                                            point: {
+                                                radius: 4,
+                                                hoverRadius: 8
+                                            },
+                                            line: {
+                                                tension: 0.4
+                                            }
+                                        },
+                                        animation: {
+                                            duration: 1000,
+                                            easing: 'easeInOutQuart'
+                                        }
+                                    }
+                                };
+
+                                const revenues = data.map(item => parseFloat(item.revenue || 0));
+                                const orders = data.map(item => parseInt(item.orders || 0));
+
+                                // Color scheme
+                                const colors = {
+                                    primary: {
+                                        bg: 'rgba(59, 130, 246, 0.1)',
+                                        border: 'rgba(59, 130, 246, 1)',
+                                        fill: 'rgba(59, 130, 246, 0.3)'
+                                    },
+                                    secondary: {
+                                        bg: 'rgba(16, 185, 129, 0.1)',
+                                        border: 'rgba(16, 185, 129, 1)',
+                                        fill: 'rgba(16, 185, 129, 0.3)'
+                                    }
+                                };
+
+                                switch(chartType) {
+                                    case 'bar':
+                                        baseConfig.type = 'bar';
+                                        baseConfig.data.datasets = [
+                                            {
+                                                label: 'Revenue ($)',
+                                                data: revenues,
+                                                backgroundColor: colors.primary.fill,
+                                                borderColor: colors.primary.border,
+                                                borderWidth: 1,
+                                                borderRadius: 4,
+                                                borderSkipped: false
+                                            }
+                                        ];
+                                        break;
+
+                                    case 'line':
+                                        baseConfig.type = 'line';
+                                        baseConfig.data.datasets = [
+                                            {
+                                                label: 'Revenue ($)',
+                                                data: revenues,
+                                                borderColor: colors.primary.border,
+                                                backgroundColor: colors.primary.bg,
+                                                borderWidth: 3,
+                                                fill: false,
+                                                tension: 0.4,
+                                                pointBackgroundColor: colors.primary.border,
+                                                pointBorderColor: '#ffffff',
+                                                pointBorderWidth: 2
+                                            }
+                                        ];
+                                        break;
+
+                                    case 'area':
+                                        baseConfig.type = 'line';
+                                        baseConfig.data.datasets = [
+                                            {
+                                                label: 'Revenue ($)',
+                                                data: revenues,
+                                                borderColor: colors.primary.border,
+                                                backgroundColor: colors.primary.fill,
+                                                borderWidth: 3,
+                                                fill: true,
+                                                tension: 0.4,
+                                                pointBackgroundColor: colors.primary.border,
+                                                pointBorderColor: '#ffffff',
+                                                pointBorderWidth: 2
+                                            }
+                                        ];
+                                        break;
+
+                                    case 'mixed':
+                                    default:
+                                        baseConfig.type = 'bar';
+                                        baseConfig.data.datasets = [
+                                            {
+                                                label: 'Revenue ($)',
+                                                data: revenues,
+                                                backgroundColor: colors.primary.fill,
+                                                borderColor: colors.primary.border,
+                                                borderWidth: 1,
+                                                borderRadius: 4,
+                                                borderSkipped: false,
+                                                yAxisID: 'y'
+                                            },
+                                            {
+                                                label: 'Orders',
+                                                data: orders,
+                                                borderColor: colors.secondary.border,
+                                                backgroundColor: colors.secondary.border,
+                                                borderWidth: 3,
+                                                type: 'line',
+                                                yAxisID: 'y1',
+                                                fill: false,
+                                                tension: 0.4,
+                                                pointBackgroundColor: colors.secondary.border,
+                                                pointBorderColor: '#ffffff',
+                                                pointBorderWidth: 2
+                                            }
+                                        ];
+                                        
+                                        // Add second y-axis for mixed chart
+                                        baseConfig.options.scales.y1 = {
+                                            type: 'linear',
+                                            display: true,
+                                            position: 'right',
+                                            grid: {
+                                                drawOnChartArea: false
+                                            },
+                                            title: {
+                                                display: true,
+                                                text: 'Orders',
+                                                font: {
+                                                    weight: 'bold'
+                                                }
+                                            },
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return value.toLocaleString();
+                                                }
+                                            }
+                                        };
+                                        break;
+                                }
+
+                                return baseConfig;
+                            }
+
+                                async function updateChart(useCachedData = false) {
+                            const period = document.getElementById('timePeriodSelect').value;
+                            const chartType = document.getElementById('chartTypeSelect').value;
+                            
+                            // Show loading
+                            document.getElementById('chartLoading').classList.remove('hidden');
+                            document.getElementById('chartContainer').classList.add('hidden');
+                            document.getElementById('noDataMessage').classList.add('hidden');
+
+                            try {
+                                // Get fresh data unless using cached data
+                                let salesDataSets;
+                                if (useCachedData) {
+                                    salesDataSets = {
+                                        week: <?php echo json_encode($weeklySales); ?>,
+                                        month: <?php echo json_encode($monthlySalesDaily); ?>,
+                                        '6months': <?php echo json_encode($monthlySales); ?>,
+                                        year: <?php echo json_encode($yearlySales); ?>
+                                    };
+                                } else {
+                                    salesDataSets = await fetchLatestSalesData();
+                                }
+
+                                const data = salesDataSets[period];
+                                
+                                setTimeout(() => {
+                                    if (!data || data.length === 0) {
+                                        // Show no data message
+                                        document.getElementById('chartLoading').classList.add('hidden');
+                                        document.getElementById('noDataMessage').classList.remove('hidden');
+                                        
+                                        const periodNames = {
+                                            'week': 'last week',
+                                            'month': 'last month', 
+                                            '6months': 'last 6 months',
+                                            'year': 'last year'
+                                        };
+                                        document.querySelector('#noDataMessage p').textContent = 
+                                            `No sales data available for the ${periodNames[period]}.`;
+                                        return;
+                                    }
+
+                                    // Destroy existing chart
+                                    if (salesChart) {
+                                        salesChart.destroy();
+                                    }
+
+                                    // Format labels based on period
+                                    const labels = formatLabels(data, period);
+                                    
+                                    // Create new chart
+                                    const ctx = document.getElementById('salesChart').getContext('2d');
+                                    const config = getChartConfig(data, labels, chartType);
+                                    salesChart = new Chart(ctx, config);
+
+                                    // Hide loading and show chart
+                                    document.getElementById('chartLoading').classList.add('hidden');
+                                    document.getElementById('chartContainer').classList.remove('hidden');
+                                }, 300);
+
+                            } catch (error) {
+                                console.error('Error updating chart:', error);
+                                document.getElementById('chartLoading').classList.add('hidden');
+                                document.getElementById('noDataMessage').classList.remove('hidden');
                             }
                         }
-                    }
-                }
-            };
 
-            const revenues = data.map(item => parseFloat(item.revenue || 0));
-            const orders = data.map(item => parseInt(item.orders || 0));
-
-            switch(chartType) {
-                case 'bar':
-                    baseConfig.type = 'bar';
-                    baseConfig.data.datasets = [
-                        {
-                            label: 'Revenue ($)',
-                            data: revenues,
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 1
-                        }
-                    ];
-                    break;
-
-                case 'line':
-                    baseConfig.type = 'line';
-                    baseConfig.data.datasets = [
-                        {
-                            label: 'Revenue ($)',
-                            data: revenues,
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4
-                        }
-                    ];
-                    break;
-
-                case 'area':
-                    baseConfig.type = 'line';
-                    baseConfig.data.datasets = [
-                        {
-                            label: 'Revenue ($)',
-                            data: revenues,
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4
-                        }
-                    ];
-                    break;
-
-                case 'mixed':
-                default:
-                    baseConfig.type = 'bar';
-                    baseConfig.data.datasets = [
-                        {
-                            label: 'Revenue ($)',
-                            data: revenues,
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 1,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Orders',
-                            data: orders,
-                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                            borderColor: 'rgba(16, 185, 129, 1)',
-                            borderWidth: 2,
-                            type: 'line',
-                            yAxisID: 'y1',
-                            fill: false,
-                            tension: 0.4
-                        }
-                    ];
-                    
-                    // Add second y-axis for mixed chart
-                    baseConfig.options.scales.y1 = {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Orders'
-                        }
-                    };
-                    break;
-            }
-
-            return baseConfig;
+                        function startAutoUpdate() {
+    // Clear existing interval
+    if (chartUpdateInterval) {
+        clearInterval(chartUpdateInterval);
+    }
+    
+    // Update every 2 minutes if page is visible
+    chartUpdateInterval = setInterval(() => {
+        if (!document.hidden) {
+            updateChart(false); // Use fresh data
         }
+    }, 120000); // 2 minutes
+}
 
-        function updateChart() {
-            const period = document.getElementById('timePeriodSelect').value;
-            const chartType = document.getElementById('chartTypeSelect').value;
-            const data = salesDataSets[period];
-            
-            // Show loading
-            document.getElementById('chartLoading').classList.remove('hidden');
-            document.getElementById('chartContainer').classList.add('hidden');
-            document.getElementById('noDataMessage').classList.add('hidden');
-
-            // Simulate brief loading for better UX
-            setTimeout(() => {
-                if (!data || data.length === 0) {
-                    // Show no data message
-                    document.getElementById('chartLoading').classList.add('hidden');
-                    document.getElementById('noDataMessage').classList.remove('hidden');
-                    
-                    // Update the no data message based on period
-                    const periodNames = {
-                        'week': 'last week',
-                        'month': 'last month', 
-                        '6months': 'last 6 months',
-                        'year': 'last year'
-                    };
-                    document.querySelector('#noDataMessage p').textContent = 
-                        `No sales data available for the ${periodNames[period]}.`;
-                    return;
-                }
-
-                // Destroy existing chart
-                if (salesChart) {
-                    salesChart.destroy();
-                }
-
-                // Format labels based on period
-                const labels = formatLabels(data, period);
-                
-                // Create new chart
-                const ctx = document.getElementById('salesChart').getContext('2d');
-                const config = getChartConfig(data, labels, chartType);
-                salesChart = new Chart(ctx, config);
-
-                // Hide loading and show chart
-                document.getElementById('chartLoading').classList.add('hidden');
-                document.getElementById('chartContainer').classList.remove('hidden');
-            }, 300);
-        }
+function stopAutoUpdate() {
+    if (chartUpdateInterval) {
+        clearInterval(chartUpdateInterval);
+        chartUpdateInterval = null;
+    }
+}
 
         // Event listeners for dropdowns
-        document.getElementById('timePeriodSelect').addEventListener('change', updateChart);
-        document.getElementById('chartTypeSelect').addEventListener('change', updateChart);
+        document.getElementById('timePeriodSelect').addEventListener('change', () => updateChart(true));
+        document.getElementById('chartTypeSelect').addEventListener('change', () => updateChart(true));
 
         // Initialize chart with default period (6 months)
-        document.addEventListener('DOMContentLoaded', function() {
-            updateChart();
-        });
+        document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopAutoUpdate();
+    } else {
+        startAutoUpdate();
+        // Update chart when page becomes visible
+        updateChart(false);
+    }
+});
 
         // Add hover effects to stat cards
         document.querySelectorAll('.stat-card').forEach(card => {
@@ -1048,11 +1533,9 @@ h3 {
 
         // Add loading states for better UX
         document.addEventListener('DOMContentLoaded', function() {
-            // Simulate loading completion
-            setTimeout(() => {
-                document.body.classList.add('loaded');
-            }, 500);
-        });
+    updateChart(true); // Use cached data for initial load
+    startAutoUpdate(); // Start auto-update
+});
 
         // Status card hover effects
         document.querySelectorAll('.status-card').forEach(card => {
@@ -1064,6 +1547,12 @@ h3 {
                 this.style.transform = 'scale(1)';
             });
         });
+        window.addEventListener('beforeunload', function() {
+    stopAutoUpdate();
+    if (salesChart) {
+        salesChart.destroy();
+    }
+});
 
         // Table row hover effects
         document.querySelectorAll('.orders-table tbody tr').forEach(row => {
