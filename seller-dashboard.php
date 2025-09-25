@@ -6,41 +6,86 @@ requireSeller();
 
 $userId = $_SESSION['user_id'];
 
-// Get seller stats
-$stmt = $pdo->prepare("SELECT COUNT(*) as total FROM products WHERE seller_id = ?");
+// Get seller stats - ALL VARIABLES DEFINED HERE
+// 1. Total Products
+$stmt = $pdo->prepare("SELECT COUNT(*) as total FROM products WHERE seller_id = ? AND status = 'active'");
 $stmt->execute([$userId]);
-$totalProducts = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+$totalProducts = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-$stmt = $pdo->prepare("SELECT COUNT(*) as total FROM order_items oi 
-                      JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ?");
-$stmt->execute([$userId]);
-$totalSales = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-$stmt = $pdo->prepare("SELECT SUM(oi.price * oi.quantity) as total FROM order_items oi 
-                      JOIN products p ON oi.product_id = p.id 
-                      WHERE p.seller_id = ?");
-$stmt->execute([$userId]);
-$totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-
-// Get pending payments (COD orders that haven't been delivered yet)
-$stmt = $pdo->prepare("SELECT SUM(oi.price * oi.quantity) as total FROM order_items oi 
+// 2. Total Items Sold
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.quantity), 0) as total FROM order_items oi 
                       JOIN products p ON oi.product_id = p.id 
                       JOIN orders o ON oi.order_id = o.id
-                      WHERE p.seller_id = ? AND o.payment_method = 'cod' AND o.status != 'delivered'");
+                      WHERE p.seller_id = ? AND o.status NOT IN ('cancelled', 'refunded')");
+$stmt->execute([$userId]);
+$totalSales = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+// 3. Expected Revenue (all active orders)
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
+                      JOIN products p ON oi.product_id = p.id 
+                      JOIN orders o ON oi.order_id = o.id
+                      WHERE p.seller_id = ? AND o.status NOT IN ('cancelled', 'refunded')");
+$stmt->execute([$userId]);
+$expectedRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+// 4. Unique Orders Count
+$stmt = $pdo->prepare("SELECT COUNT(DISTINCT o.id) as unique_orders FROM orders o 
+                      JOIN order_items oi ON o.id = oi.order_id 
+                      JOIN products p ON oi.product_id = p.id 
+                      WHERE p.seller_id = ? AND o.status NOT IN ('cancelled', 'refunded')");
+$stmt->execute([$userId]);
+$uniqueOrders = $stmt->fetch(PDO::FETCH_ASSOC)['unique_orders'] ?? 0;
+
+// 5. Average Order Value
+$avgOrderValue = $uniqueOrders > 0 ? $expectedRevenue / $uniqueOrders : 0;
+
+// 6. Pending Revenue - Orders that are pending/processing (payment not yet secured)
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
+                      JOIN products p ON oi.product_id = p.id 
+                      JOIN orders o ON oi.order_id = o.id
+                      WHERE p.seller_id = ? AND o.status IN ('pending', 'processing')");
 $stmt->execute([$userId]);
 $pendingRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-// Get paid revenue (non-COD payments + delivered COD orders)
-$stmt = $pdo->prepare("SELECT SUM(oi.price * oi.quantity) as total FROM order_items oi 
+// 7. Paid Revenue - Different logic for different payment methods
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
                       JOIN products p ON oi.product_id = p.id 
                       JOIN orders o ON oi.order_id = o.id
-                      WHERE p.seller_id = ? AND (
-                          o.payment_method != 'cod' OR 
+                      WHERE p.seller_id = ? 
+                      AND (
+                          (o.payment_method IN ('stripe', 'paypal') AND o.status NOT IN ('cancelled', 'refunded'))
+                          OR 
                           (o.payment_method = 'cod' AND o.status = 'delivered')
                       )");
 $stmt->execute([$userId]);
 $paidRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+// 8. Shipped Revenue - Revenue from shipped orders (awaiting delivery confirmation)
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
+                      JOIN products p ON oi.product_id = p.id 
+                      JOIN orders o ON oi.order_id = o.id
+                      WHERE p.seller_id = ? AND o.status = 'shipped'");
+$stmt->execute([$userId]);
+$shippedRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+// 9. Delivered Revenue - Only delivered orders (payment fully confirmed)
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
+                      JOIN products p ON oi.product_id = p.id 
+                      JOIN orders o ON oi.order_id = o.id
+                      WHERE p.seller_id = ? AND o.status = 'delivered'");
+$stmt->execute([$userId]);
+$confirmedRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+// 10. COD Pending Revenue - COD orders that are shipped but not delivered
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) as total FROM order_items oi 
+                      JOIN products p ON oi.product_id = p.id 
+                      JOIN orders o ON oi.order_id = o.id
+                      WHERE p.seller_id = ? 
+                      AND o.payment_method = 'cod' 
+                      AND o.status IN ('pending', 'processing', 'shipped')");
+$stmt->execute([$userId]);
+$codPendingRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
 
 // Get orders by status
 $stmt = $pdo->prepare("SELECT o.status, COUNT(*) as count FROM orders o 
@@ -61,6 +106,12 @@ foreach ($ordersByStatus as $status) {
 $stmt = $pdo->prepare("SELECT * FROM products WHERE seller_id = ? AND stock_quantity < 10 ORDER BY stock_quantity ASC");
 $stmt->execute([$userId]);
 $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+
 
 // Get recent orders with payment status
 $stmt = $pdo->prepare("SELECT o.*, 
@@ -98,6 +149,7 @@ $stmt = $pdo->prepare("SELECT
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
                       WHERE p.seller_id = ? 
+                      AND o.status = 'delivered'
                       AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                       AND o.created_at <= NOW()
                       GROUP BY DATE(o.created_at)
@@ -133,6 +185,7 @@ $stmt = $pdo->prepare("SELECT
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
                       WHERE p.seller_id = ? 
+                      AND o.status = 'delivered'
                       AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                       AND o.created_at <= NOW()
                       GROUP BY DATE(o.created_at)
@@ -171,6 +224,7 @@ $stmt = $pdo->prepare("SELECT
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
                       WHERE p.seller_id = ? 
+                      AND o.status = 'delivered'
                       AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
                       AND o.created_at <= NOW()
                       GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')
@@ -209,6 +263,7 @@ $stmt = $pdo->prepare("SELECT
                       JOIN order_items oi ON o.id = oi.order_id 
                       JOIN products p ON oi.product_id = p.id 
                       WHERE p.seller_id = ? 
+                      AND o.status = 'delivered'
                       AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
                       AND o.created_at <= NOW()
                       GROUP BY DATE_FORMAT(o.created_at, '%Y-%m')
@@ -254,6 +309,8 @@ $stmt = $pdo->prepare("SELECT p.name, p.id, SUM(oi.quantity) as total_sold, SUM(
                       LIMIT 5");
 $stmt->execute([$userId]);
 $topProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 ?>
 
 <!DOCTYPE html>
@@ -638,39 +695,39 @@ h3 {
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-8">Seller Dashboard</h1>
 
-        <!-- Key Performance Indicators -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-blue-500" data-aos="fade-up" data-aos-delay="100">
-                <h3 class="text-lg font-medium text-gray-600">Total Revenue</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($totalRevenue, 2); ?></p>
-                <small class="text-gray-500">All time earnings</small>
-            </div>
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-green-500" data-aos="fade-up" data-aos-delay="200">
-                <h3 class="text-lg font-medium text-gray-600">Paid Revenue</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($paidRevenue, 2); ?></p>
-                <small class="text-gray-500">Non-COD + delivered COD payments</small>
-            </div>
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500" data-aos="fade-up" data-aos-delay="300">
-                <h3 class="text-lg font-medium text-gray-600">Pending Revenue</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($pendingRevenue, 2); ?></p>
-                <small class="text-gray-500">COD orders awaiting delivery</small>
-            </div>
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-purple-500" data-aos="fade-up" data-aos-delay="400">
-                <h3 class="text-lg font-medium text-gray-600">Total Products</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2"><?php echo $totalProducts; ?></p>
-                <small class="text-gray-500">Active listings</small>
-            </div>
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-red-500" data-aos="fade-up" data-aos-delay="500">
-                <h3 class="text-lg font-medium text-gray-600">Total Sales</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2"><?php echo $totalSales; ?></p>
-                <small class="text-gray-500">Items sold</small>
-            </div>
-            <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500" data-aos="fade-up" data-aos-delay="600">
-                <h3 class="text-lg font-medium text-gray-600">Avg Order Value</h3>
-                <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo $totalSales > 0 ? number_format($totalRevenue / $totalSales, 2) : '0.00'; ?></p>
-                <small class="text-gray-500">Per item average</small>
-            </div>
-        </div>
+                <!-- Key Performance Indicators -->
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-blue-500" data-aos="fade-up" data-aos-delay="100">
+        <h3 class="text-lg font-medium text-gray-600">Expected Revenue</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($expectedRevenue, 2); ?></p>
+        <small class="text-gray-500">All active orders</small>
+    </div>
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-green-500" data-aos="fade-up" data-aos-delay="200">
+        <h3 class="text-lg font-medium text-gray-600">Confirmed Revenue</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($paidRevenue, 2); ?></p>
+        <small class="text-gray-500">Payment received/secured</small>
+    </div>
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500" data-aos="fade-up" data-aos-delay="300">
+        <h3 class="text-lg font-medium text-gray-600">Pending Revenue</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($pendingRevenue + $shippedRevenue, 2); ?></p>
+        <small class="text-gray-500">Processing + Shipped orders</small>
+    </div>
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-purple-500" data-aos="fade-up" data-aos-delay="400">
+        <h3 class="text-lg font-medium text-gray-600">Total Products</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2"><?php echo $totalProducts; ?></p>
+        <small class="text-gray-500">Active listings</small>
+    </div>
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-red-500" data-aos="fade-up" data-aos-delay="500">
+        <h3 class="text-lg font-medium text-gray-600">Items Sold</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2"><?php echo $totalSales; ?></p>
+        <small class="text-gray-500">Total quantity sold</small>
+    </div>
+    <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500" data-aos="fade-up" data-aos-delay="600">
+        <h3 class="text-lg font-medium text-gray-600">Avg Order Value</h3>
+        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($avgOrderValue, 2); ?></p>
+        <small class="text-gray-500"><?php echo $uniqueOrders; ?> orders average</small>
+    </div>
+</div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Order Status Overview -->
