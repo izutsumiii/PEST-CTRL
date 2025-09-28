@@ -264,8 +264,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 }
             }
             
-            // Redirect to success page
-            header("Location: order-success.php?order_id=" . $orderId . "&type=" . $checkoutType);
+            // Redirect to PayMongo success page (even for COD)
+            header("Location: paymongo/payment-success.php?order_id=" . $orderId . "&type=" . $checkoutType . "&payment_method=cash_on_delivery");
             exit();
             
         } catch (Exception $e) {
@@ -298,6 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 require_once 'includes/header.php';
 ?>
 
+<main style="background: #130325; min-height: 100vh; padding: 20px;">
 <div class="checkout-container">
     <h1>Checkout</h1>
     
@@ -410,15 +411,18 @@ require_once 'includes/header.php';
                     <textarea id="shipping_address" name="shipping_address" rows="3" required><?php echo htmlspecialchars($formData['shipping_address']); ?></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label for="payment_method">Payment Method *</label>
+                <div class="form-group payment-method-group">
+                    <label for="payment_method" class="payment-method-label">💳 Payment Method *</label>
                     <select id="payment_method" name="payment_method" required>
-                        <option value="">Select Payment Method</option>
-                        <option value="credit_card" <?php echo ($formData['payment_method'] === 'credit_card') ? 'selected' : ''; ?>>Credit Card</option>
-                        <option value="debit_card" <?php echo ($formData['payment_method'] === 'debit_card') ? 'selected' : ''; ?>>Debit Card</option>
-                        <option value="paypal" <?php echo ($formData['payment_method'] === 'paypal') ? 'selected' : ''; ?>>PayPal</option>
-                        <option value="cash_on_delivery" <?php echo ($formData['payment_method'] === 'cash_on_delivery') ? 'selected' : ''; ?>>Cash on Delivery</option>
+                        <option value="">⚠️ Please select a payment method</option>
+                        <option value="card" <?php echo ($formData['payment_method'] === 'card' || $formData['payment_method'] === 'credit_card' || $formData['payment_method'] === 'debit_card') ? 'selected' : ''; ?>>💳 Credit/Debit Card</option>
+                        <option value="gcash" <?php echo ($formData['payment_method'] === 'gcash') ? 'selected' : ''; ?>>📱 GCash</option>
+                        <option value="grab_pay" <?php echo ($formData['payment_method'] === 'grab_pay') ? 'selected' : ''; ?>>🚗 GrabPay</option>
+                        <option value="paymaya" <?php echo ($formData['payment_method'] === 'paymaya') ? 'selected' : ''; ?>>💳 PayMaya</option>
+                        <option value="billease" <?php echo ($formData['payment_method'] === 'billease') ? 'selected' : ''; ?>>🏦 Billease</option>
+                        <option value="cash_on_delivery" <?php echo ($formData['payment_method'] === 'cash_on_delivery') ? 'selected' : ''; ?>>💰 Cash on Delivery</option>
                     </select>
+                    <small class="payment-method-note">Choose your preferred payment method to continue</small>
                 </div>
                 
                 <div class="form-actions">
@@ -427,12 +431,15 @@ require_once 'includes/header.php';
                     <?php else: ?>
                         <a href="cart.php" class="btn btn-secondary">Back to Cart</a>
                     <?php endif; ?>
-                    <button type="submit" name="place_order" class="btn btn-primary">Place Order</button>
+                    <button type="button" id="processPaymentBtn" class="btn btn-primary">
+                        <i class="fas fa-credit-card"></i> Continue to Payment
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+</main>
 
 <script>
 // Remove item functionality
@@ -518,15 +525,29 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+body {
+    background: #130325 !important;
+    min-height: 100vh;
+}
+
 .checkout-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
 }
 
+h1 {
+    color: var(--primary-light);
+    text-align: center;
+    margin: 20px 0;
+    font-size: 2rem;
+    border-bottom: 3px solid var(--accent-yellow);
+    padding-bottom: 10px;
+}
+
 .checkout-type-info {
-    background-color: #e7f3ff;
-    border: 1px solid #b3d9ff;
+    background-color: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
     border-radius: 4px; 
     padding: 15px;
     margin-bottom: 20px;
@@ -542,13 +563,13 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .badge-primary {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--accent-yellow);
+    color: var(--primary-dark);
 }
 
 .checkout-note {
     margin: 10px 0 0 0;
-    color: #666;
+    color: var(--primary-light);
     font-size: 14px;
 }
 
@@ -559,21 +580,21 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .alert-info {
-    background-color: #d1ecf1;
-    border: 1px solid #bee5eb;
-    color: #0c5460;
+    background-color: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
+    color: var(--accent-yellow);
 }
 
 .alert-warning {
-    background-color: #fff3cd;
-    border: 1px solid #ffeaa7;
-    color: #856404;
+    background-color: var(--primary-dark);
+    border: 1px solid #ffc107;
+    color: #ffc107;
 }
 
 .alert-error {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background-color: var(--primary-dark);
+    border: 1px solid #dc3545;
+    color: #dc3545;
 }
 
 .alert ul {
@@ -589,7 +610,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .order-summary {
-    background-color: #f8f9fa;
+    background-color: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
     padding: 20px;
     border-radius: 8px;
 }
@@ -602,7 +624,7 @@ document.addEventListener('DOMContentLoaded', function() {
     display: flex;
     align-items: center;
     padding: 15px 0;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid rgba(255, 215, 54, 0.3);
     position: relative;
 }
 
@@ -668,10 +690,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .order-total {
-    border-top: 2px solid #dee2e6;
+    border-top: 2px solid var(--accent-yellow);
     padding-top: 15px;
     font-size: 18px;
     text-align: right;
+    color: var(--primary-light);
 }
 
 .buy-now-info {
@@ -682,12 +705,12 @@ document.addEventListener('DOMContentLoaded', function() {
 .empty-cart-notice {
     text-align: center;
     padding: 40px 20px;
-    color: #666;
+    color: var(--primary-light);
     font-style: italic;
 }
 
 .empty-cart-notice a {
-    color: #007bff;
+    color: var(--accent-yellow);
     text-decoration: none;
 }
 
@@ -696,14 +719,21 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .text-muted {
-    color: #6c757d;
+    color: var(--primary-light);
 }
 
 .checkout-form {
-    background-color: white;
+    background-color: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
     padding: 20px;
-    border: 1px solid #dee2e6;
     border-radius: 8px;
+}
+
+.checkout-form h2 {
+    color: var(--primary-light);
+    border-bottom: 2px solid var(--accent-yellow);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 .form-group {
@@ -711,10 +741,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 5px;
+    color: var(--primary-light);
     font-weight: 500;
-    color: #333;
+    margin-bottom: 5px;
+    display: block;
 }
 
 .form-group input,
@@ -732,8 +762,65 @@ document.addEventListener('DOMContentLoaded', function() {
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 0 2px rgba(255, 215, 54, 0.25);
+}
+
+/* Payment method specific styling */
+#payment_method {
+    background: var(--primary-dark);
+    border: 2px solid var(--accent-yellow);
+    color: var(--primary-light);
+    font-weight: 500;
+    font-size: 16px;
+    padding: 12px 15px;
+}
+
+#payment_method:focus {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 0 3px rgba(255, 215, 54, 0.3);
+}
+
+#payment_method option {
+    background: var(--primary-dark);
+    color: var(--primary-light);
+    padding: 10px;
+}
+
+/* Error styling for payment method */
+#payment_method.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+#payment_method.error:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+}
+
+/* Payment method group styling */
+.payment-method-group {
+    background: rgba(255, 215, 54, 0.1);
+    border: 2px solid var(--accent-yellow);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.payment-method-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-yellow);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.payment-method-note {
+    color: var(--primary-light);
+    font-size: 14px;
+    margin-top: 8px;
+    display: block;
+    opacity: 0.8;
 }
 
 .form-actions {
@@ -806,5 +893,287 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+
+<script>
+// PayMongo Payment Processing
+async function processPayment() {
+    const form = document.querySelector('form');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!validateCheckoutForm()) {
+        return;
+    }
+    
+    const paymentMethod = document.getElementById('payment_method').value;
+    
+    // Handle Cash on Delivery
+    if (paymentMethod === 'cash_on_delivery') {
+        // Submit form normally for COD
+        form.submit();
+        return;
+    }
+    
+    // Handle Online Payment with PayMongo
+    showLoading(true);
+    
+    try {
+        // Debug: Log form data
+        console.log('Form data:', {
+            customer_name: formData.get('customer_name'),
+            customer_email: formData.get('customer_email'),
+            customer_phone: formData.get('customer_phone'),
+            shipping_address: formData.get('shipping_address'),
+            payment_method: formData.get('payment_method')
+        });
+        
+        // Determine payment method types based on selection
+        let paymentMethodTypes = [];
+        if (paymentMethod === 'card') {
+            paymentMethodTypes = ['card'];
+        } else if (paymentMethod === 'gcash') {
+            paymentMethodTypes = ['gcash'];
+        } else if (paymentMethod === 'grab_pay') {
+            paymentMethodTypes = ['grab_pay'];
+        } else if (paymentMethod === 'paymaya') {
+            paymentMethodTypes = ['paymaya'];
+        } else if (paymentMethod === 'billease') {
+            paymentMethodTypes = ['billease'];
+        } else {
+            // Fallback - should not happen due to validation
+            paymentMethodTypes = ['card'];
+        }
+        
+        console.log('Selected payment method:', paymentMethod);
+        console.log('PayMongo payment method types:', paymentMethodTypes);
+        
+        // Prepare checkout data
+        const checkoutData = {
+            amount: <?php echo $checkoutTotal; ?>,
+            currency: 'PHP',
+            payment_method_types: paymentMethodTypes,
+            send_email_receipt: true,
+            show_description: false,
+            show_line_items: true,
+            receipt_email: formData.get('customer_email'),
+            success_url: 'http://localhost/PEST-CTRL_VER.1.3/paymongo/payment-success.php',
+            cancel_url: 'http://localhost/PEST-CTRL_VER.1.3/paymongo/payment-cancel.php',
+            order_id: 'order_' + Date.now(),
+            customer_email: formData.get('customer_email'),
+            customer: {
+                first_name: (formData.get('customer_name') || '').split(' ')[0] || '',
+                last_name: (formData.get('customer_name') || '').split(' ').slice(1).join(' ') || '',
+                email: formData.get('customer_email') || '',
+                phone: formData.get('customer_phone') || null
+            },
+            items: [
+                <?php foreach ($checkoutItems as $item): ?>
+                {
+                    name: '<?php echo addslashes($item['name']); ?>',
+                    quantity: <?php echo $item['quantity']; ?>,
+                    price: <?php echo $item['price']; ?>,
+                    description: '<?php echo addslashes($item['name']); ?>'
+                },
+                <?php endforeach; ?>
+            ]
+        };
+        
+        // Debug: Log checkout data
+        console.log('Checkout data being sent:', checkoutData);
+        
+        // Store payment data in session storage for success page
+        const paymentData = {
+            checkout_session_id: null, // Will be updated after successful creation
+            amount: checkoutData.amount,
+            payment_method: paymentMethod,
+            customer_email: checkoutData.customer_email,
+            customer_name: checkoutData.customer.first_name + ' ' + checkoutData.customer.last_name,
+            order_id: checkoutData.order_id,
+            items: checkoutData.items
+        };
+        console.log('Stored payment data:', paymentData);
+        
+        // Create checkout session
+        const result = await createCheckoutSession(checkoutData);
+        
+        if (result.success) {
+            // Update payment data with actual checkout session ID
+            paymentData.checkout_session_id = result.checkout_session_id;
+            
+            // Store in session storage
+            sessionStorage.setItem('paymentData', JSON.stringify(paymentData));
+            
+            // Redirect to PayMongo checkout page
+            window.location.href = result.checkout_url;
+        } else {
+            showMessage(result.error || 'Failed to create checkout session. Please try again.', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Payment error:', error);
+        console.error('Error details:', error.message);
+        showMessage('Payment error: ' + error.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Create PayMongo checkout session
+async function createCheckoutSession(checkoutData) {
+    try {
+        const response = await fetch('paymongo/create-checkout-session.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(checkoutData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('PayMongo API response:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('Checkout session creation error:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Form validation
+function validateCheckoutForm() {
+    const requiredFields = [
+        { id: 'customer_name', name: 'Customer Name' },
+        { id: 'customer_email', name: 'Email' },
+        { id: 'shipping_address', name: 'Shipping Address' },
+        { id: 'payment_method', name: 'Payment Method' }
+    ];
+    
+    for (let field of requiredFields) {
+        const input = document.getElementById(field.id);
+        if (!input.value.trim()) {
+            showMessage(`${field.name} is required!`, 'error');
+            input.focus();
+            return false;
+        }
+    }
+    
+    // Validate email format
+    const email = document.getElementById('customer_email').value;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('Please enter a valid email address!', 'error');
+        document.getElementById('customer_email').focus();
+        return false;
+    }
+    
+    // Validate payment method selection
+    const paymentMethod = document.getElementById('payment_method').value;
+    const paymentMethodField = document.getElementById('payment_method');
+    if (!paymentMethod || paymentMethod === '') {
+        showMessage('Please select a payment method!', 'error');
+        paymentMethodField.classList.add('error');
+        paymentMethodField.focus();
+        return false;
+    } else {
+        paymentMethodField.classList.remove('error');
+    }
+    
+    return true;
+}
+
+// Add event listener to remove error styling when payment method is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentMethodField = document.getElementById('payment_method');
+    if (paymentMethodField) {
+        paymentMethodField.addEventListener('change', function() {
+            if (this.value && this.value !== '') {
+                this.classList.remove('error');
+            }
+        });
+    }
+});
+
+// Show loading state
+function showLoading(show) {
+    const btn = document.getElementById('processPaymentBtn');
+    if (show) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-credit-card"></i> Continue to Payment';
+    }
+}
+
+// Show message
+function showMessage(message, type) {
+    // Create message element if it doesn't exist
+    let messageEl = document.getElementById('messageBox');
+    if (!messageEl) {
+        messageEl = document.createElement('div');
+        messageEl.id = 'messageBox';
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(messageEl);
+    }
+    
+    messageEl.textContent = message;
+    messageEl.style.backgroundColor = type === 'error' ? '#dc3545' : '#28a745';
+    messageEl.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        messageEl.style.display = 'none';
+    }, 5000);
+}
+
+// Remove item functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener to payment button
+    const paymentBtn = document.getElementById('processPaymentBtn');
+    if (paymentBtn) {
+        paymentBtn.addEventListener('click', processPayment);
+    }
+    
+    const removeButtons = document.querySelectorAll('.remove-item-btn');
+    
+    removeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const orderItem = this.closest('.order-item');
+            
+            if (confirm('Are you sure you want to remove this item?')) {
+                // Show loading state
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                // Remove from DOM immediately
+                orderItem.remove();
+                
+                // Update totals (you might want to recalculate)
+                showMessage('Item removed from order', 'success');
+            }
+        });
+    });
+});
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

@@ -218,7 +218,9 @@ function formatPaymentMethod(method) {
         'card': 'Credit/Debit Card',
         'gcash': 'GCash',
         'grab_pay': 'GrabPay',
-        'paypal': 'PayPal'
+        'paymaya': 'PayMaya',
+        'billease': 'Billease',
+        'cash_on_delivery': 'Cash on Delivery'
     };
     return methodMap[method] || method;
 }
@@ -251,18 +253,27 @@ async function fetchPaymentDetails(checkoutSessionId) {
 
 // Display payment details
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Payment success page loaded');
+    console.log('Current URL:', window.location.href);
+    console.log('URL parameters:', window.location.search);
+    
     // Try to get data from URL parameters first
     let transactionId = getUrlParameter('payment_intent_id') || 
                        getUrlParameter('checkout_session_id') || 
                        getUrlParameter('session_id') ||
-                       getUrlParameter('id');
+                       getUrlParameter('id') ||
+                       getUrlParameter('payment_intent') ||
+                       getUrlParameter('checkout_session');
     
     let amount = getUrlParameter('amount') || getUrlParameter('total');
     let paymentMethod = getUrlParameter('payment_method') || getUrlParameter('method');
     
+    console.log('Initial values from URL:', { transactionId, amount, paymentMethod });
+    
     // If no data from URL, try to get from session storage
     if (!transactionId || transactionId === 'N/A') {
         const paymentData = getPaymentDataFromStorage();
+        console.log('Payment data from storage:', paymentData);
         if (paymentData) {
             transactionId = paymentData.checkout_session_id || paymentData.payment_intent_id || 'N/A';
             amount = paymentData.amount || 'N/A';
@@ -279,6 +290,22 @@ document.addEventListener('DOMContentLoaded', async function() {
             amount = paymentDetails.amount || amount;
             paymentMethod = paymentDetails.payment_method || paymentMethod;
             console.log('Retrieved payment details:', paymentDetails);
+        } else {
+            console.log('Failed to fetch payment details:', paymentDetails);
+        }
+    } else {
+        // If no checkout session ID from URL, try to get it from session storage
+        const paymentData = getPaymentDataFromStorage();
+        if (paymentData && paymentData.checkout_session_id) {
+            console.log('Trying to fetch payment details from stored session ID:', paymentData.checkout_session_id);
+            const paymentDetails = await fetchPaymentDetails(paymentData.checkout_session_id);
+            
+            if (paymentDetails && paymentDetails.success) {
+                amount = paymentDetails.amount || amount;
+                paymentMethod = paymentDetails.payment_method || paymentMethod;
+                transactionId = paymentData.checkout_session_id;
+                console.log('Retrieved payment details from stored session:', paymentDetails);
+            }
         }
     }
     
@@ -296,6 +323,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         minute: '2-digit'
     });
 
+    // Debug: Log final values before display
+    console.log('Final values to display:', {
+        transactionId,
+        amount,
+        paymentMethod,
+        formattedAmount: formatAmount(amount),
+        formattedPaymentMethod: formatPaymentMethod(paymentMethod)
+    });
+    
     // Update the display
     document.getElementById('transactionId').textContent = transactionId;
     document.getElementById('amount').textContent = formatAmount(amount);

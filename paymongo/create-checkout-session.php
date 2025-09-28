@@ -42,6 +42,7 @@ try {
     }
     
     error_log("Parsed input: " . print_r($input, true));
+    error_log("Payment Method Types received: " . json_encode($input['payment_method_types'] ?? 'Not provided'));
     
     // Validate required fields
     $required_fields = ['amount', 'currency', 'items'];
@@ -61,7 +62,7 @@ try {
                 'receipt_email' => $input['receipt_email'] ?? $input['customer_email'] ?? '',
                 'success_url' => $input['success_url'] ?? $PAYMONGO_CONFIG['success_url'],
                 'cancel_url' => $input['cancel_url'] ?? $PAYMONGO_CONFIG['cancel_url'],
-                'payment_method_types' => $input['payment_method_types'] ?? ['card', 'gcash', 'grab_pay'],
+                'payment_method_types' => $input['payment_method_types'] ?? ['card'],
                 'line_items' => [],
                 'metadata' => [
                     'order_id' => $input['order_id'] ?? 'order_' . time(),
@@ -108,6 +109,9 @@ try {
         $checkout_data['data']['attributes']['metadata']['customer_email'] = $input['customer_email'];
         $checkout_data['data']['attributes']['metadata']['customer_name'] = 'Customer';
     }
+    
+    // Log the final checkout data being sent to PayMongo
+    error_log("Final checkout data being sent to PayMongo: " . json_encode($checkout_data));
     
     // Create checkout session using cURL
     $ch = curl_init();

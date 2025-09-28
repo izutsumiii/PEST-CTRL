@@ -12,11 +12,11 @@ require_once 'functions.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PEST-CTRL - Professional Pest Control Solutions</title>
-    <link rel="icon" type="image/x-icon" href="assets/uploads/pest_icon_216780.ico">
-    <link href="assets/css/pest-ctrl.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../assets/uploads/pest_icon_216780.ico' : 'assets/uploads/pest_icon_216780.ico'; ?>">
+    <link href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../assets/css/pest-ctrl.css' : 'assets/css/pest-ctrl.css'; ?>" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="assets/js/script.js"></script>
+    <script src="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../assets/js/script.js' : 'assets/js/script.js'; ?>"></script>
     <style>
         /* PEST-CTRL Header Overrides - Keep Original Structure */
         .site-header {
@@ -305,7 +305,7 @@ require_once 'functions.php';
         <div class="container">
             <div class="header-left">
                 <button class="hamburger" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
-                <a class="brand" href="index.php">
+                <a class="brand" href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../index.php' : 'index.php'; ?>">
                     <div class="brand-logo">
                         <i class="fas fa-bug" style="color: #F9F9F9; margin-right: 8px;"></i>PEST-CTRL
                     </div>
@@ -323,9 +323,9 @@ require_once 'functions.php';
 
             <div class="header-right">
                 <div class="nav-links">
-                    <a href="index.php">Home</a>
-                    <a href="products.php">Products</a>
-                    <a href="cart.php" class="cart-link"><i class="fas fa-shopping-cart"></i></a>
+                    <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../index.php' : 'index.php'; ?>">Home</a>
+                    <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../products.php' : 'products.php'; ?>">Products</a>
+                    <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../cart.php' : 'cart.php'; ?>" class="cart-link"><i class="fas fa-shopping-cart"></i></a>
                 </div>
 
                 <?php if (isLoggedIn()): ?>
@@ -365,13 +365,13 @@ require_once 'functions.php';
     <!-- Mobile Drawer -->
     <nav class="mobile-drawer" id="mobileDrawer">
         <div style="display:flex;align-items:center;justify-content:space-between">
-            <a class="brand" href="index.php"><div class="brand-logo"><i class="fas fa-bug" style="color: #F9F9F9; margin-right: 8px;"></i>PEST-CTRL</div></a>
+            <a class="brand" href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../index.php' : 'index.php'; ?>"><div class="brand-logo"><i class="fas fa-bug" style="color: #F9F9F9; margin-right: 8px;"></i>PEST-CTRL</div></a>
             <button class="close-btn" id="drawerClose"><i class="fas fa-times"></i></button>
         </div>
         <div class="links">
-            <a href="index.php">Home</a>
-            <a href="products.php">Products</a>
-            <a href="cart.php">Cart</a>
+            <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../index.php' : 'index.php'; ?>">Home</a>
+            <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../products.php' : 'products.php'; ?>">Products</a>
+            <a href="<?php echo (basename(dirname($_SERVER['PHP_SELF'])) === 'paymongo') ? '../cart.php' : 'cart.php'; ?>">Cart</a>
             <?php if (isLoggedIn()): ?>
                 <?php if (isSeller()): ?>
                     <a href="seller-dashboard.php">Seller Dashboard</a>

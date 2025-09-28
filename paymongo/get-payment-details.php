@@ -92,6 +92,11 @@ try {
         $paymentMethod = $attributes['payment_method_types'][0];
     }
     
+    // Log the response for debugging
+    error_log("PayMongo API Response: " . json_encode($response));
+    error_log("Extracted amount: " . $totalAmount);
+    error_log("Extracted payment method: " . $paymentMethod);
+    
     // Return successful response
     echo json_encode([
         'success' => true,

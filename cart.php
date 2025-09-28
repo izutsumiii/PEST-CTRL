@@ -143,12 +143,29 @@ $cartTotal = getCartTotal();
 <style>
 
 /* Shopping Cart Styles */
+body {
+    background: #130325 !important;
+    min-height: 100vh;
+}
+
+main {
+    background: #130325;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.cart-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
 
 h1 {
-    color: #333;
+    color: var(--primary-light);
     text-align: center;
     margin: 20px 0;
     font-size: 2rem;
+    border-bottom: 3px solid var(--accent-yellow);
+    padding-bottom: 10px;
 }
 
 /* Alert messages */
@@ -160,29 +177,30 @@ h1 {
 }
 
 .alert-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--primary-dark);
+    color: var(--accent-yellow);
+    border: 1px solid var(--accent-yellow);
 }
 
 .alert-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--primary-dark);
+    color: #dc3545;
+    border: 1px solid #dc3545;
 }
 
 /* Empty cart */
 .empty-cart {
     text-align: center;
     padding: 40px 20px;
-    background: #f8f9fa;
+    background: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
     border-radius: 8px;
     margin: 20px 0;
 }
 
 .empty-cart p {
     font-size: 1.2rem;
-    color: #666;
+    color: var(--primary-light);
     margin-bottom: 20px;
 }
 
@@ -195,15 +213,16 @@ h1 {
 .cart-table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--primary-dark);
+    border: 1px solid var(--accent-yellow);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     border-radius: 8px;
     overflow: hidden;
 }
 
 .cart-table th {
-    background: #007bff;
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--primary-dark);
     padding: 15px;
     text-align: left;
     font-weight: 600;
@@ -211,11 +230,12 @@ h1 {
 
 .cart-table td {
     padding: 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(255, 215, 54, 0.3);
+    color: var(--primary-light);
 }
 
 .cart-table tbody tr:hover {
-    background: #f8f9fa;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Product info cell */
@@ -234,19 +254,19 @@ h1 {
 
 .product-details h4 {
     margin: 0 0 5px 0;
-    color: #333;
+    color: var(--primary-light);
 }
 
 .stock-info {
     margin: 0;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--primary-light);
 }
 
 /* Price and totals */
 .price, .item-total {
     font-weight: 600;
-    color: #333;
+    color: var(--accent-yellow);
 }
 
 /* Quantity controls */
@@ -259,8 +279,9 @@ h1 {
 .qty-btn {
     width: 30px;
     height: 30px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
+    border: 1px solid var(--accent-yellow);
+    background: var(--primary-dark);
+    color: var(--primary-light);
     cursor: pointer;
     border-radius: 4px;
     display: flex;
@@ -270,20 +291,24 @@ h1 {
 }
 
 .qty-btn:hover {
-    background: #e9ecef;
+    background: var(--accent-yellow);
+    color: var(--primary-dark);
 }
 
 .qty-input {
     width: 60px;
     text-align: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--accent-yellow);
+    background: var(--primary-dark);
+    color: var(--primary-light);
     padding: 5px;
     border-radius: 4px;
 }
 
 /* Cart total row */
 .cart-total {
-    background: #f8f9fa;
+    background: rgba(255, 215, 54, 0.1);
+    color: var(--primary-light);
     font-weight: bold;
 }
 
@@ -305,12 +330,12 @@ h1 {
 }
 
 .btn-primary {
-    background: #007bff;
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--primary-dark);
 }
 
 .btn-primary:hover {
-    background: #0056b3;
+    background: #e6c200;
 }
 
 .btn-remove {
@@ -325,30 +350,31 @@ h1 {
 }
 
 .btn-update {
-    background: #28a745;
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--primary-dark);
 }
 
 .btn-update:hover {
-    background: #218838;
+    background: #e6c200;
 }
 
 .btn-continue {
-    background: #6c757d;
-    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-light);
+    border: 1px solid var(--accent-yellow);
 }
 
 .btn-continue:hover {
-    background: #5a6268;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .btn-checkout {
-    background: #fd7e14;
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--primary-dark);
 }
 
 .btn-checkout:hover {
-    background: #e8610e;
+    background: #e6c200;
 }
 
 /* Cart actions */
