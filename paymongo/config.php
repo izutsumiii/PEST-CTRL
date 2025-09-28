@@ -5,8 +5,8 @@
  */
 
 // PayMongo API Configuration
-define('PAYMONGO_SECRET_KEY', 'sk_test_PZ1WNKqqTe4drEswNQhq7j3V'); // Replace with your actual secret key
-define('PAYMONGO_PUBLIC_KEY', 'pk_test_Jg347cHmxmHKD2PTe9MKXpBT'); // Replace with your actual public key
+define('PAYMONGO_SECRET_KEY', 'sk_test_your_secret_key_here'); // Replace with your actual secret key
+define('PAYMONGO_PUBLIC_KEY', 'pk_test_your_public_key_here'); // Replace with your actual public key
 define('PAYMONGO_BASE_URL', 'https://api.paymongo.com/v1');
 
 // IMPORTANT: Replace this with your actual ngrok URL
@@ -22,7 +22,7 @@ define('LOCAL_SUCCESS_URL', 'http://localhost/PEST-CTRL_VER.1.3/paymongo/payment
 define('LOCAL_CANCEL_URL', 'http://localhost/PEST-CTRL_VER.1.3/paymongo/payment-cancel.php');
 
 // Webhook Configuration (optional)
-define('WEBHOOK_SECRET', 'whsk_bBCHLBWDHmTP1SRzsE2AeJ8e'); // Replace with your webhook secret
+define('WEBHOOK_SECRET', 'whsk_your_webhook_secret_here'); // Replace with your webhook secret
 
 // Currency Settings
 define('DEFAULT_CURRENCY', 'PHP');
