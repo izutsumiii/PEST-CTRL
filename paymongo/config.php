@@ -5,8 +5,8 @@
  */
 
 // PayMongo API Configuration
-define('PAYMONGO_SECRET_KEY', 'sk_test_your_secret_key_here'); // Replace with your actual secret key
-define('PAYMONGO_PUBLIC_KEY', 'pk_test_your_public_key_here'); // Replace with your actual public key
+define('PAYMONGO_SECRET_KEY', 'your_paymongo_secret_key_here'); // Replace with your actual secret key
+define('PAYMONGO_PUBLIC_KEY', 'your_paymongo_public_key_here'); // Replace with your actual public key
 define('PAYMONGO_BASE_URL', 'https://api.paymongo.com/v1');
 
 // IMPORTANT: Replace this with your actual ngrok URL
