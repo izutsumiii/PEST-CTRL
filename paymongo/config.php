@@ -11,11 +11,12 @@ define('PAYMONGO_BASE_URL', 'https://api.paymongo.com/v1');
 
 // IMPORTANT: Replace this with your actual ngrok URL
 // Example: https://abc123.ngrok-free.app
-define('NGROK_BASE_URL', 'https://nonfragilely-marked-wilfredo.ngrok-free.dev');
+// Get your ngrok URL by running: ngrok http 80
+define('NGROK_BASE_URL', 'https://nonfragilely-marked-wilfredo.ngrok-free.dev'); // Replace with your actual ngrok URL
 
-// Payment URLs
-define('PAYMENT_SUCCESS_URL', NGROK_BASE_URL . '/PEST-CTRL_VER.1.3/paymongo/payment-success.php');
-define('PAYMENT_CANCEL_URL', NGROK_BASE_URL . '/PEST-CTRL_VER.1.3/paymongo/payment-cancel.php');
+// Payment URLs - Updated for current project structure
+define('PAYMENT_SUCCESS_URL', NGROK_BASE_URL . '/PEST-CTRL-VER_1.6/PEST-CTRL-main/multi-seller-paymongo-success.php');
+define('PAYMENT_CANCEL_URL', NGROK_BASE_URL . '/PEST-CTRL-VER_1.6/PEST-CTRL-main/multi-seller-checkout.php');
 
 // Local URLs for testing (use these when testing locally)
 define('LOCAL_SUCCESS_URL', 'http://localhost/PEST-CTRL_VER.1.3/paymongo/payment-success.php');

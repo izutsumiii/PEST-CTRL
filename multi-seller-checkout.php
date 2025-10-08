@@ -98,10 +98,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout'])) {
         if ($isAjax) {
             header('Content-Type: application/json');
             if ($result['success']) {
+                // Route PayMongo-supported methods to PayMongo checkout
+                $redirectUrl = 'multi-seller-payment.php?transaction_id=' . $result['payment_transaction_id'];
+                if (in_array($paymentMethod, ['paymongo','card','gcash','grab_pay','paymaya','billease'], true)) {
+                    $redirectUrl = 'multi-seller-paymongo-checkout.php?transaction_id=' . $result['payment_transaction_id'];
+                }
+                
                 echo json_encode([
                     'success' => true,
                     'transaction_id' => $result['payment_transaction_id'],
-                    'redirect_url' => 'multi-seller-payment.php?transaction_id=' . $result['payment_transaction_id']
+                    'redirect_url' => $redirectUrl
                 ]);
             } else {
                 echo json_encode(['success' => false, 'message' => $result['message']]);
@@ -112,7 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout'])) {
         if ($result['success']) {
             // Standard redirect fallback
             $_SESSION['checkout_success'] = $result;
-            header("Location: multi-seller-payment.php?transaction_id=" . $result['payment_transaction_id']);
+            $redirectUrl = 'multi-seller-payment.php?transaction_id=' . $result['payment_transaction_id'];
+            if (in_array($paymentMethod, ['paymongo','card','gcash','grab_pay','paymaya','billease'], true)) {
+                $redirectUrl = 'multi-seller-paymongo-checkout.php?transaction_id=' . $result['payment_transaction_id'];
+            }
+            header("Location: " . $redirectUrl);
             exit();
         } else {
             $errors[] = $result['message'];
@@ -535,8 +545,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             function pmLabel(method){
-                const map = { card:'💳 Credit/Debit Card', gcash:'📱 GCash', grab_pay:'🚗 GrabPay', paymaya:'💳 PayMaya', billease:'🏦 Billease', cash_on_delivery:'💰 Cash on Delivery' };
-                return map[method] || method;
+                const map = {
+                    paymongo: '💳 Debit/Credit Card', // ensure label shows user-friendly text
+                    card: '💳 Debit/Credit Card',
+                    gcash: '📱 GCash',
+                    grab_pay: '🚗 GrabPay',
+                    paymaya: '💳 PayMaya',
+                    billease: '🏦 Billease',
+                    cash_on_delivery: '💰 Cash on Delivery'
+                };
+                return map[method] || '💳 Debit/Credit Card';
             }
 
             modal.innerHTML = `
