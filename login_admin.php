@@ -530,31 +530,9 @@ if (isset($_COOKIE['remember_token']) && !isLoggedIn()) {
     </style>
 </head>
 <body>
-    <!-- Code Verification Overlay -->
-    <div id="codeOverlay" class="code-overlay">
-        <div class="code-verification">
-            <div class="code-header">
-                <i class="fas fa-key"></i>
-                <h2>Admin Security Code</h2>
-                <p>Enter the 6-digit admin access code to proceed</p>
-            </div>
-          <input type="password" id="adminSecurityCode" class="admin-code-input" placeholder="••••••" maxlength="6" pattern="\d{6}">
+    
 
-            <div class="code-error" id="codeError">
-                <i class="fas fa-exclamation-triangle"></i> Invalid code. Access denied.
-            </div>
-            <div class="code-buttons">
-                <button class="code-btn code-btn-verify" onclick="verifySecurityCode()">
-                    <i class="fas fa-unlock"></i> Verify
-                </button>
-                <button class="code-btn code-btn-back" onclick="goBack()">
-                    <i class="fas fa-arrow-left"></i> Back
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="login-container login-form-locked" id="loginContainer">
+    <div class="login-container" id="loginContainer">
         <div class="login-header">
             <h1><i class="fas fa-cog"></i> Admin Portal</h1>
             <div class="subtitle">Secure Administrative Access</div>
@@ -594,14 +572,14 @@ if (isset($_COOKIE['remember_token']) && !isLoggedIn()) {
             
             <div class="form-group">         
                 <label for="username"><i class="fas fa-user-shield"></i> Admin Username or Email:</label>         
-                <input type="text" id="username" name="username" value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" required disabled>     
+                <input type="text" id="username" name="username" value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" required>     
             </div>          
             
             <div class="form-group">
                 <label for="password"><i class="fas fa-lock"></i> Admin Password:</label>
                 <div class="password-input-container">
-                    <input type="password" id="password" name="password" required disabled>
-                    <button type="button" class="toggle-password" onclick="togglePassword('password')" disabled>
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('password')">
                         <i class="fa-solid fa-eye"></i>
                     </button>
                 </div>
@@ -611,7 +589,7 @@ if (isset($_COOKIE['remember_token']) && !isLoggedIn()) {
                 <!-- Remember me functionality commented out for security -->
             </div>          
             
-            <button type="submit" name="login" disabled><i class="fas fa-sign-in-alt"></i> Secure Admin Login</button> 
+            <button type="submit" name="login"><i class="fas fa-sign-in-alt"></i> Secure Admin Login</button> 
         </form>  
         
         <div class="other-logins">
@@ -622,65 +600,6 @@ if (isset($_COOKIE['remember_token']) && !isLoggedIn()) {
     </div>
 
     <script> 
-        // Security code verification
-        function verifySecurityCode() {
-            const enteredCode = document.getElementById('adminSecurityCode').value;
-            const correctCode = '987654';
-            
-            if (enteredCode === correctCode) {
-                // Code is correct, hide overlay and enable form
-                document.getElementById('codeOverlay').style.display = 'none';
-                const loginContainer = document.getElementById('loginContainer');
-                loginContainer.classList.remove('login-form-locked');
-                
-                // Enable form elements
-                document.getElementById('username').disabled = false;
-                document.getElementById('password').disabled = false;
-                document.querySelector('button[name="login"]').disabled = false;
-                document.querySelector('.toggle-password').disabled = false;
-                
-                // Focus on username field
-                document.getElementById('username').focus();
-                
-                // Add success indicator
-                const codeOverlay = document.getElementById('codeOverlay');
-                codeOverlay.style.background = 'rgba(46, 204, 113, 0.1)';
-                setTimeout(() => {
-                    codeOverlay.style.display = 'none';
-                }, 500);
-                
-            } else {
-                // Show error message and shake animation
-                const errorDiv = document.getElementById('codeError');
-                const codeInput = document.getElementById('adminSecurityCode');
-                
-                errorDiv.style.display = 'block';
-                codeInput.value = '';
-                codeInput.style.animation = 'codeShake 0.5s';
-                codeInput.focus();
-                
-                setTimeout(() => {
-                    codeInput.style.animation = '';
-                }, 500);
-            }
-        }
-
-        function goBack() {
-            window.location.href = 'index.php'; // or wherever you want to redirect
-        }
-
-        // Allow Enter key to submit code
-        document.getElementById('adminSecurityCode').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verifySecurityCode();
-            }
-        });
-
-        // Only allow numeric input for security code
-        document.getElementById('adminSecurityCode').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '');
-        });
-
         // Toggle password visibility 
         function togglePassword(fieldId) {
             const passwordField = document.getElementById(fieldId);
@@ -698,18 +617,7 @@ if (isset($_COOKIE['remember_token']) && !isLoggedIn()) {
             }
         }
 
-        // Auto-focus on security code field when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('adminSecurityCode').focus();
-        });
-
-        // Prevent form submission if code not verified
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            if (document.getElementById('codeOverlay').style.display !== 'none') {
-                e.preventDefault();
-                alert('Please verify the security code first.');
-            }
-        });
+        // removed admin overlay verification on this page per request
     </script>
 </body>
 </html>

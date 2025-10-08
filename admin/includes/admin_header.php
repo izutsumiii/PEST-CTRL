@@ -24,26 +24,45 @@ require_once '../includes/functions.php';
             font-size: 13px;
         }
         
-        header {
-            background: linear-gradient(180deg, #130325, #130325);
-            backdrop-filter: blur(6px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        /* Sidebar layout */
+        /* Sidebar wrapper should not push content below the fold */
+        .admin-layout { display: contents; }
+        .sidebar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; bottom: 0;
+            width: 240px;
+            background: #130325;
+            border-right: 1px solid rgba(255, 215, 54, 0.2);
+            padding: 16px 12px;
             z-index: 1000;
-            padding: 0;
         }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 14px;
-            max-width: 1200px;
-            margin: 0 auto;
+        .sidebar .logo { text-align: center; }
+        .sidebar .logo a {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            color: #F9F9F9; text-decoration: none; font-weight: 700; padding: 6px 8px;
         }
+        .sidebar .section-title { color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 14px 8px 6px; }
+        .sidebar .nav-links { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+        .sidebar .nav-links a { display: flex; align-items: center; gap: 10px; color: #F9F9F9; text-decoration: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; width: 100%; }
+        .sidebar .nav-links a:hover { background: rgba(255, 215, 54, 0.1); color: #FFD736; transform: none; }
+        .sidebar .nav-links a.active { background: rgba(255, 215, 54, 0.15); color: #FFD736; border: 1px solid rgba(255, 215, 54, 0.25); }
+        /* Hide sidebar user box; we'll show user in main header */
+        .sidebar .user-box { display: none; }
+
+        /* Content offset */
+        main { margin-left: 240px; }
+
+        /* Main content user bar (upper-left) */
+        .main-userbar { 
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; 
+            position: fixed; top: 10px; right: 16px; z-index: 1500;
+        }
+        .main-userbar .user { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; color: #F9F9F9; }
+        .main-userbar .user .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #FFD736, #e6c230); color: #130325; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+        .main-userbar .menu { position: relative; }
+        .main-userbar .dropdown { position: absolute; top: 120%; left: 0; background:#fff; color:#111827; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.15); display:none; min-width:160px; z-index:2000; }
+        .main-userbar .dropdown a { display:block; padding:8px 10px; color:#374151; text-decoration:none; font-size:13px; }
+        .main-userbar .dropdown a:hover { background:#f3f4f6; }
         
         .logo a {
             color: #F9F9F9;
@@ -190,7 +209,7 @@ require_once '../includes/functions.php';
         /* Admin page shared styles to mirror seller theme */
         .page-header {
             max-width: 1200px;
-            margin: 70px auto 14px auto;
+            margin: -40px auto 14px auto; /* top spacing knob A */
             padding: 0 14px;
         }
         .page-header h1 {
@@ -452,8 +471,27 @@ require_once '../includes/functions.php';
         }
         .modal button[type="submit"]:hover { filter: brightness(0.95); transform: translateY(-1px); }
 
-        /* Compact page titles and list headers for Customers/Sellers pages */
-        main > h1 { text-align: center; font-size: 16px; margin: 72px auto 8px auto; }
+        /* Compact page titles and list headers for admin pages */
+        main > h1 { text-align: center; font-size: 16px; margin: 8px auto 8px auto; /* top spacing knob B */ }
+
+        /* Ensure small, consistent top gap across all common admin pages */
+        .page-admin-dashboard .page-header,
+        .page-admin-dashboard main > h1,
+        .page-admin-customers .page-header,
+        .page-admin-customers main > h1,
+        .page-admin-sellers .page-header,
+        .page-admin-sellers main > h1,
+        .page-admin-products .admin-header,
+        .page-admin-products .page-header,
+        .page-admin-products main > h1,
+        .page-admin-categories .admin-header,
+        .page-admin-categories .page-header,
+        .page-admin-categories main > h1 {
+            margin-top: 8px !important;
+        }
+
+        /* Fallback: if a page uses a different first block, keep it tight */
+        main > *:first-child { margin-top: 8px; }
         .page-admin-sellers main > h1, .page-admin-customers main > h1 { font-size: 56px; line-height: 1.1; }
         .page-admin-dashboard .page-header h1 { font-size: 56px; line-height: 1.1; }
         .admin-content h2 { text-align: center; font-size: 14px; }
@@ -464,138 +502,56 @@ require_once '../includes/functions.php';
     </style>
 </head>
 <body class="<?php echo 'page-' . strtolower(pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME)); ?>">
-    <header>
-        <nav>
-            <div class="logo">
-                <a href="admin-dashboard.php">
-                    <i class="fas fa-bug" style="color: #F9F9F9; margin-right: 8px;"></i>PEST-CTRL Admin
-                </a>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo" style="margin: 4px 6px 10px;">
+                <a href="admin-dashboard.php"><i class="fas fa-bug"></i><span>PEST-CTRL Admin</span></a>
             </div>
-            
+
+
             <?php if (isLoggedIn() && isAdmin()): ?>
-                <div class="admin-info">
-                    <span class="admin-badge">
-                        <i class="fas fa-user-shield"></i> Admin
-                    </span>
-                    <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                <div class="section-title">Overview</div>
+                <div class="nav-links">
+                    <a href="admin-dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </div>
+
+                <div class="section-title">Users</div>
+                <div class="nav-links">
+                    <a href="admin-customers.php"><i class="fas fa-shopping-cart"></i> Customers</a>
+                    <a href="admin-sellers.php"><i class="fas fa-store"></i> Sellers</a>
+                </div>
+
+                <div class="section-title">Catalog</div>
+                <div class="nav-links">
+                    <a href="admin-products.php"><i class="fas fa-boxes"></i> Products</a>
+                    <a href="admin-categories.php"><i class="fas fa-tags"></i> Categories</a>
+                </div>
+
+                <div class="section-title">System</div>
+                <div class="nav-links">
+                    <a href="admin-settings.php"><i class="fas fa-cogs"></i> Settings</a>
+                    <a href="admin-reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                </div>
+
+                <div class="user-box">
+                    <div class="user-top">
+                        <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
+                        <div><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                    </div>
+                    <a href="../logout.php" style="color:#F9F9F9; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="nav-links" style="margin-top: 12px;">
+                    <a href="../login_admin.php"><i class="fas fa-sign-in-alt"></i> Admin Login</a>
                 </div>
             <?php endif; ?>
-            
-            <div class="nav-links">
-                <?php if (isLoggedIn() && isAdmin()): ?>
-                    <a href="admin-dashboard.php">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    
-                    <div class="dropdown">
-                        <a href="#" class="dropdown-toggle">
-                            <i class="fas fa-users"></i> Users <i class="fas fa-chevron-down"></i>
-                        </a>
-                        <div class="dropdown-content">
-                            <a href="admin-customers.php">
-                                <i class="fas fa-shopping-cart"></i> Customers
-                            </a>
-                            <a href="admin-sellers.php">
-                                <i class="fas fa-store"></i> Sellers
-                            </a>
-                            <a href="admin-admins.php">
-                                <!-- <i class="fas fa-user-shield"></i> Admins -->
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <a href="admin-products.php">
-                        <i class="fas fa-boxes"></i> Products
-                    </a>
-                    
-                    <!-- <a href="admin-orders.php">
-                        <i class="fas fa-clipboard-list"></i> Orders
-                    </a> -->
-                    
-                    <div class="dropdown">
-                        <a href="#" class="dropdown-toggle">
-                            <i class="fas fa-cog"></i> System <i class="fas fa-chevron-down"></i>
-                        </a>
-                        <div class="dropdown-content">
-                            <a href="admin-categories.php">
-                                <i class="fas fa-tags"></i> Categories
-                            </a>
-                            <a href="admin-settings.php">
-                                <i class="fas fa-cogs"></i> Settings
-                            </a>
-                            <a href="admin-reports.php">
-                                <i class="fas fa-chart-bar"></i> Reports
-                            </a>
-                            <!-- <a href="security-logs.php"> -->
-                                <!-- <i class="fas fa-shield-alt"></i> Security Logs -->
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div class="dropdown">
-                        <div class="user-menu">
-                            <div class="user-avatar">
-                                <?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?>
-                            </div>
-                            <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="dropdown-content">
-                            <!-- <a href="admin-profile.php"> -->
-                                <!-- <i class="fas fa-user"></i> My Profile -->
-                            </a>
-                            <!-- <a href="admin-security.php"> -->
-                                <!-- <i class="fas fa-lock"></i> Security Settings -->
-                            </a>
-                            <a href="../logout.php">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <a href="../login_admin.php">
-                        <i class="fas fa-sign-in-alt"></i> Admin Login
-                    </a>
-                <?php endif; ?>
-            </div>
-        </nav>
-    </header>
+        </aside>
+    </div>
     
     <script>
-        // Handle dropdown clicks
         document.addEventListener('DOMContentLoaded', function() {
-            const dropdowns = document.querySelectorAll('.dropdown');
-            
-            dropdowns.forEach(dropdown => {
-                const toggle = dropdown.querySelector('.dropdown-toggle, .user-menu');
-                
-                if (toggle) {
-                    toggle.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Close all other dropdowns
-                        dropdowns.forEach(otherDropdown => {
-                            if (otherDropdown !== dropdown) {
-                                otherDropdown.classList.remove('show');
-                            }
-                        });
-                        
-                        // Toggle current dropdown
-                        dropdown.classList.toggle('show');
-                    });
-                }
-            });
-            
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    dropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('show');
-                    });
-                }
-            });
-
             // Confirmation modal for actions
             const confirmModal = document.createElement('div');
             confirmModal.innerHTML = `
@@ -643,4 +599,30 @@ require_once '../includes/functions.php';
         });
     </script>
     
+    <?php if (isLoggedIn() && isAdmin()): ?>
+        <div class="main-userbar">
+            <div class="menu" id="mainUserMenu">
+                <div class="user" onclick="toggleUserDropdown()">
+                    <div class="avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
+                    <div><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                    <i class="fas fa-chevron-down" style="font-size:12px; opacity:.8;"></i>
+                </div>
+                <div class="dropdown" id="mainUserDropdown">
+                    <a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+        <script>
+            function toggleUserDropdown(){
+                const dd = document.getElementById('mainUserDropdown');
+                dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+            }
+            document.addEventListener('click', function(e){
+                if (!document.getElementById('mainUserMenu').contains(e.target)){
+                    document.getElementById('mainUserDropdown').style.display = 'none';
+                }
+            });
+        </script>
+    <?php endif; ?>
+
     <main>

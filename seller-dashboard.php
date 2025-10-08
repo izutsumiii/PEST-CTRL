@@ -137,7 +137,7 @@ $difference = abs($expectedRevenue - $calculatedExpected);
 
 // Log any significant discrepancies (for debugging)
 if ($difference > 0.01) {
-    error_log("Revenue calculation discrepancy detected: Expected: $expectedRevenue, Calculated: $calculatedExpected, Difference: $difference");
+                error_log("Revenue calculation discrepancy detected: Expected: {$expectedRevenue}, Calculated: {$calculatedExpected}, Difference: {$difference}");
 }
 
 // Additional validation: Ensure confirmed revenue components add up correctly
@@ -796,9 +796,14 @@ h3 {
 }
 
 .orders-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #1a0a2e !important; /* darker purple hover */
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.orders-table tbody tr:hover td,
+.orders-table tbody tr:hover span,
+.orders-table tbody tr:hover a {
+    color: #F9F9F9 !important; /* keep text readable */
 }
 
 /* Order ID and Product Info */
@@ -992,17 +997,17 @@ h3 {
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-blue-500" data-aos="fade-up" data-aos-delay="100">
         <h3 class="text-lg font-medium text-gray-600">Expected Revenue</h3>
-        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($expectedRevenue, 2); ?></p>
+        <p class="text-3xl font-bold text-gray-800 my-2">₱<?php echo number_format($expectedRevenue, 2); ?></p>
         <small class="text-gray-500">All active orders</small>
     </div>
     <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-green-500" data-aos="fade-up" data-aos-delay="200">
         <h3 class="text-lg font-medium text-gray-600">Confirmed Revenue</h3>
-        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($confirmedRevenue, 2); ?></p>
+        <p class="text-3xl font-bold text-gray-800 my-2">₱<?php echo number_format($confirmedRevenue, 2); ?></p>
         <small class="text-gray-500">Online payments + COD delivered</small>
     </div>
     <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500" data-aos="fade-up" data-aos-delay="300">
         <h3 class="text-lg font-medium text-gray-600">Pending Revenue</h3>
-        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($pendingRevenue, 2); ?></p>
+        <p class="text-3xl font-bold text-gray-800 my-2">₱<?php echo number_format($pendingRevenue, 2); ?></p>
         <small class="text-gray-500">COD orders awaiting delivery</small>
     </div>
     <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-purple-500" data-aos="fade-up" data-aos-delay="400">
@@ -1017,7 +1022,7 @@ h3 {
     </div>
     <div class="stat-card bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500" data-aos="fade-up" data-aos-delay="600">
         <h3 class="text-lg font-medium text-gray-600">Avg Order Value</h3>
-        <p class="text-3xl font-bold text-gray-800 my-2">$<?php echo number_format($avgOrderValue, 2); ?></p>
+        <p class="text-3xl font-bold text-gray-800 my-2">₱<?php echo number_format($avgOrderValue, 2); ?></p>
         <small class="text-gray-500"><?php echo $uniqueOrders; ?> orders average</small>
     </div>
 </div>
@@ -1028,12 +1033,12 @@ h3 {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="stat-card paid bg-green-50 rounded-lg shadow p-4 border-l-4 border-green-500">
             <h3 class="text-sm font-medium text-green-800 mb-1">Online Payments (Secured)</h3>
-            <p class="stat-value text-green-600">$<?php echo number_format($onlinePaymentRevenue, 2); ?></p>
+            <p class="stat-value text-green-600">₱<?php echo number_format($onlinePaymentRevenue, 2); ?></p>
             <small class="text-green-700">Gcash, PayPal, Credit Card, Debit Card</small>
         </div>
         <div class="stat-card paid bg-blue-50 rounded-lg shadow p-4 border-l-4 border-blue-500">
             <h3 class="text-sm font-medium text-blue-800 mb-1">COD Delivered</h3>
-            <p class="stat-value text-blue-600">$<?php echo number_format($codDeliveredRevenue, 2); ?></p>
+            <p class="stat-value text-blue-600">₱<?php echo number_format($codDeliveredRevenue, 2); ?></p>
             <small class="text-blue-700">Cash payments received</small>
         </div>
     </div>
@@ -1166,7 +1171,7 @@ h3 {
                     <span class="product-name"><?php echo htmlspecialchars($product['name']); ?></span>
                     <span class="product-stats">
                         <?php echo $product['total_sold']; ?> sold • 
-                        $<?php echo number_format($product['revenue'], 2); ?> revenue
+                        ₱<?php echo number_format($product['revenue'], 2); ?> revenue
                     </span>
                     <?php
                     $methodLabels = [
@@ -1192,7 +1197,6 @@ h3 {
             <?php endif; ?>
         </div>
 
-        <!-- Recent Orders -->
        <!-- Recent Orders -->
 <div class="section mb-8" data-aos="fade-up">
     <div class="flex items-center justify-between mb-4">
@@ -1209,9 +1213,6 @@ h3 {
             </svg>
             <h3 class="text-lg font-medium text-white mb-2">No Recent Orders</h3>
             <p class="text-gray-300">You haven't received any orders yet. Start promoting your products!</p>
-            <!-- <a href="seller-products.php" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition duration-300 shadow-lg">
-                Manage Products
-            </a> -->
         </div>
     <?php else: ?>
         <!-- Responsive Recent Orders List -->
@@ -1231,7 +1232,7 @@ h3 {
                 </thead>
                 <tbody class="bg-transparent divide-y divide-gray-700">
                     <?php foreach ($recentOrders as $order): ?>
-                        <tr class="hover:bg-white hover:bg-opacity-10 transition duration-150">
+                        <tr class="transition duration-150">
                             <td class="px-3 py-3 whitespace-nowrap">
                                 <div class="flex flex-col">
                                     <span class="font-mono text-xs font-bold text-cyan-400">#<?php echo $order['id']; ?></span>
@@ -1270,12 +1271,12 @@ h3 {
                             <td class="px-3 py-3 whitespace-nowrap">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium text-white"><?php echo $order['quantity']; ?> item(s)</span>
-                                    <span class="text-xs text-gray-400">$<?php echo number_format($order['item_price'], 2); ?></span>
+                                    <span class="text-xs text-gray-400">₱<?php echo number_format($order['item_price'], 2); ?></span>
                                 </div>
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap">
                                 <span class="font-bold text-sm text-yellow-400">
-                                    $<?php echo number_format($order['total_amount'], 2); ?>
+                                    ₱<?php echo number_format($order['total_amount'], 2); ?>
                                 </span>
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap">

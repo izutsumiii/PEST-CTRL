@@ -2,6 +2,22 @@
 require_once 'includes/seller_header.php';
 require_once 'config/database.php';
 
+// Apply seller dashboard theme to analytics
+echo '<style>
+body{background:#130325 !important;}
+main{margin-left:240px;}
+.section{background:rgba(255,255,255,0.1);padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.3);color:#F9F9F9;backdrop-filter:blur(10px)}
+.stat-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:16px}
+.period-badge{background:rgba(255,215,54,0.12);border:1px solid #FFD736;color:#FFD736;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.orders-table-container{overflow-x:auto;margin-bottom:15px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:rgba(255,255,255,0.05)}
+.orders-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.orders-table thead{background:rgba(255,255,255,0.1);position:sticky;top:0;z-index:10}
+.orders-table th{padding:12px 12px;text-align:left;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#FFD736;border-bottom:2px solid rgba(255,255,255,0.2)}
+.orders-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);color:#F9F9F9}
+.orders-table tbody tr{background:rgba(255,255,255,0.03);transition:all .15s ease-in-out}
+.orders-table tbody tr:hover{background:#1a0a2e !important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+</style>';
+
 requireSeller();
 $userId = $_SESSION['user_id'];
 
@@ -361,21 +377,21 @@ $periodLabels = [
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div class="stat-card border-l-blue-500" data-aos="fade-up" data-aos-delay="100">
                 <h3 class="text-lg font-medium text-gray-300">Expected Revenue</h3>
-                <div class="stat-value">$<?php echo number_format($expectedRevenue, 2); ?></div>
+                <div class="stat-value">₱<?php echo number_format($expectedRevenue, 2); ?></div>
                 <small class="text-gray-400">All active orders</small>
                 <div class="period-badge"><?php echo $periodLabels[$selectedPeriod]; ?></div>
             </div>
             
             <div class="stat-card border-l-green-500" data-aos="fade-up" data-aos-delay="200">
                 <h3 class="text-lg font-medium text-gray-300">Confirmed Revenue</h3>
-                <div class="stat-value">$<?php echo number_format($confirmedRevenue, 2); ?></div>
+                <div class="stat-value">₱<?php echo number_format($confirmedRevenue, 2); ?></div>
                 <small class="text-gray-400">Online payments + COD delivered</small>
                 <div class="period-badge"><?php echo $periodLabels[$selectedPeriod]; ?></div>
             </div>
             
             <div class="stat-card border-l-yellow-500" data-aos="fade-up" data-aos-delay="300">
                 <h3 class="text-lg font-medium text-gray-300">Pending Revenue</h3>
-                <div class="stat-value">$<?php echo number_format($pendingRevenue, 2); ?></div>
+                <div class="stat-value">₱<?php echo number_format($pendingRevenue, 2); ?></div>
                 <small class="text-gray-400">COD orders awaiting delivery</small>
                 <div class="period-badge"><?php echo $periodLabels[$selectedPeriod]; ?></div>
             </div>

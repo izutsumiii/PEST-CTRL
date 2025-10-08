@@ -466,25 +466,25 @@ if (isLoggedIn()) {
         </div>
     </div>
 
-    <!-- Admin Code Modal -->
+    <!-- Admin Code Modal (styled/structured like admin overlay) -->
     <div id="adminModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeAdminModal()">&times;</span>
             <div class="modal-header">
-                <i class="fas fa-shield-alt"></i>
-                <h2>Admin Access</h2>
-                <p>Enter the 6-digit admin code to proceed</p>
+                <i class="fas fa-key"></i>
+                <h2>Admin Security Code</h2>
+                <p>Enter the 6-digit admin access code to proceed</p>
             </div>
-            <input type="text" id="adminCode" class="code-input" placeholder="000000" maxlength="6" pattern="\d{6}">
+            <input type="password" id="adminCode" class="code-input" placeholder="••••••" maxlength="6" pattern="\d{6}">
             <div class="error-message" id="errorMessage">
-                <i class="fas fa-exclamation-triangle"></i> Invalid code. Please try again.
+                <i class="fas fa-exclamation-triangle"></i> Invalid code. Access denied.
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" onclick="verifyAdminCode()">
                     <i class="fas fa-unlock"></i> Verify
                 </button>
-                <button class="btn btn-secondary" onclick="closeAdminModal()">
-                    <i class="fas fa-times"></i> Cancel
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> Back
                 </button>
             </div>
         </div>
@@ -622,6 +622,11 @@ if (isLoggedIn()) {
                     input.classList.remove('shake');
                 }, 500);
             }
+        }
+
+        function goBack() {
+            closeAdminModal();
+            window.location.href = 'index.php';
         }
 
         // Allow Enter key to submit

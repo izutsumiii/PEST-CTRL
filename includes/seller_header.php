@@ -18,31 +18,60 @@ require_once 'functions.php';
             box-sizing: border-box;
         }
         
-        body {
-            font-family: var(--font-primary);
-            background-color: var(--bg-secondary);
-        }
-        
-        header {
-            background: linear-gradient(180deg, #130325, #130325);
-            backdrop-filter: blur(6px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        body { font-family: var(--font-primary); background-color: var(--bg-secondary); }
+
+        /* Sidebar layout (match admin layout approach) */
+        .seller-layout { display: contents; }
+        .sidebar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; bottom: 0;
+            width: 240px;
+            background: #130325;
+            border-right: 1px solid rgba(255, 215, 54, 0.2);
+            padding: 16px 12px;
             z-index: 1000;
-            padding: 0;
         }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 18px;
-            max-width: 1200px;
-            margin: 0 auto;
+        .sidebar .logo { text-align: center; margin: 12px 6px 18px; }
+        .sidebar .logo a { display: inline-flex; align-items: center; gap: 12px; color: #F9F9F9; text-decoration: none; font-weight: 900; font-size: 40px; line-height: 1; }
+        .sidebar .logo a i { font-size: 26px; }
+        .sidebar .section-title { color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 14px 8px 6px; }
+        .sidebar .nav-links { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+        .sidebar .nav-links a { display: flex; align-items: center; gap: 10px; color: #F9F9F9; text-decoration: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; width: 100%; }
+        .sidebar .nav-links a:hover { background: rgba(255, 215, 54, 0.1); color: #FFD736; }
+        .sidebar .nav-links a.active { background: rgba(255, 215, 54, 0.15); color: #FFD736; border: 1px solid rgba(255, 215, 54, 0.25); }
+        .sidebar .user-box { margin-top: auto; padding: 10px; border-top: 1px solid rgba(255, 215, 54, 0.15); color: #F9F9F9; font-size: 12px; }
+        .sidebar .user-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .sidebar .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #FFD736, #e6c230); color: #130325; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+        /* Content offset so content doesn't start below the fold */
+        main { margin-left: 240px; }
+
+        /* Shared seller page styles (mirrors seller dashboard) */
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            color: #F9F9F9;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
         }
+        .orders-table-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .orders-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .orders-table thead { background: rgba(255, 255, 255, 0.1); position: sticky; top: 0; z-index: 10; }
+        .orders-table th { padding: 12px; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #FFD736; border-bottom: 2px solid rgba(255,255,255,0.2); }
+        .orders-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #F9F9F9; }
+        .orders-table tbody tr { background: rgba(255, 255, 255, 0.03); transition: all 0.15s ease-in-out; }
+        .orders-table tbody tr:hover { background: #1a0a2e !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .orders-table tbody tr:hover td, .orders-table tbody tr:hover a, .orders-table tbody tr:hover span { color: #F9F9F9 !important; }
+        main h1, main h2 { color: #F9F9F9; }
         
         .logo a {
             color: #F9F9F9;
@@ -164,126 +193,49 @@ require_once 'functions.php';
             font-size: 14px;
         }
         
-        @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 15px;
-                padding: 1rem;
-            }
-            
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
-            }
-            
-            .seller-info {
-                order: -1;
-            }
-        }
+        @media (max-width: 768px) { main { margin-left: 0; } .sidebar { width: 100%; position: static; border-right: none; } }
     </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="logo">
-                <a href="seller-dashboard.php">
-                    <i class="fas fa-bug" style="color: #F9F9F9; margin-right: 8px;"></i>PEST-CTRL
-                </a>
-            </div>
-            
+    <div class="seller-layout">
+        <aside class="sidebar">
+            <div class="logo"><a href="seller-dashboard.php"><span>PEST-CTRL</span></a></div>
+
             <?php if (isLoggedIn() && isSeller()): ?>
-                <div class="seller-info">
-                    <span class="seller-badge">
-                        <i class="fas fa-store"></i> Seller
-                    </span>
-                    <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                <div class="section-title">Overview</div>
+                <div class="nav-links">
+                    <a href="seller-dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </div>
+
+                <div class="section-title">Orders</div>
+                <div class="nav-links">
+                    <a href="view-orders.php"><i class="fas fa-clipboard-list"></i> View Orders</a>
+                    <a href="sales-analytics.php"><i class="fas fa-chart-bar"></i> Analytics</a>
+                </div>
+
+                <div class="section-title">Catalog</div>
+                <div class="nav-links">
+                    <a href="manage-products.php"><i class="fas fa-boxes"></i> Manage Products</a>
+                </div>
+
+                <div class="user-box">
+                    <div class="user-top">
+                        <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
+                        <div><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                    </div>
+                    <div class="nav-links">
+                        <a href="seller-edit-profile.php"><i class="fas fa-user"></i> Edit Profile</a>
+                        <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="nav-links" style="margin-top:12px;">
+                    <a href="login_seller.php"><i class="fas fa-sign-in-alt"></i> Seller Login</a>
                 </div>
             <?php endif; ?>
-            
-            <div class="nav-links">
-                <?php if (isLoggedIn() && isSeller()): ?>
-                    <a href="seller-dashboard.php">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    
-                    <a href="view-orders.php">
-                        <i class="fas fa-clipboard-list"></i> View Orders
-                    </a>
-                    
-                    <a href="sales-analytics.php">
-                        <i class="fas fa-chart-bar"></i> Analytics
-                    </a>
-                    
-                    <a href="manage-products.php">
-                        <i class="fas fa-boxes"></i> Manage Products
-                    </a>
-                    
-                    <!-- <a href="order-confirmation.php">
-                        <i class="fas fa-check-circle"></i> Order Confirmation
-                    </a> -->
-                    
-                    <div class="dropdown">
-                        <div class="user-menu">
-                            <div class="user-avatar">
-                                <?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?>
-                            </div>
-                            <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="dropdown-content">
-                            <a href="edit-profile.php">
-                                <i class="fas fa-user"></i> Edit Profile
-                            </a>
-                            <a href="logout.php">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <a href="login_seller.php">
-                        <i class="fas fa-sign-in-alt"></i> Seller Login
-                    </a>
-                <?php endif; ?>
-            </div>
-        </nav>
-    </header>
+        </aside>
+    </div>
     
-    <script>
-        // Handle dropdown clicks
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropdowns = document.querySelectorAll('.dropdown');
-            
-            dropdowns.forEach(dropdown => {
-                const toggle = dropdown.querySelector('.dropdown-toggle, .user-menu');
-                
-                if (toggle) {
-                    toggle.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Close all other dropdowns
-                        dropdowns.forEach(otherDropdown => {
-                            if (otherDropdown !== dropdown) {
-                                otherDropdown.classList.remove('show');
-                            }
-                        });
-                        
-                        // Toggle current dropdown
-                        dropdown.classList.toggle('show');
-                    });
-                }
-            });
-            
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    dropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('show');
-                    });
-                }
-            });
-        });
-    </script>
+    <script>/* no dropdown JS needed for sidebar */</script>
     
     <main>

@@ -9,6 +9,21 @@ require 'PHPMailer/PHPMailer/src/SMTP.php';
 require_once 'includes/seller_header.php';
 require_once 'config/database.php';
 
+// Seller dashboard theme styles (section/table unification)
+echo '<style>
+body{background:#130325 !important;}
+main{margin-left:240px;}
+.section{background:rgba(255,255,255,0.1);padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.3);color:#F9F9F9;backdrop-filter:blur(10px)}
+.orders-table-container{overflow-x:auto;margin-bottom:15px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:rgba(255,255,255,0.05)}
+.orders-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.orders-table thead{background:rgba(255,255,255,0.1);position:sticky;top:0;z-index:10}
+.orders-table th{padding:12px 12px;text-align:left;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#FFD736;border-bottom:2px solid rgba(255,255,255,0.2)}
+.orders-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);color:#F9F9F9}
+.orders-table tbody tr{background:rgba(255,255,255,0.03);transition:all .15s ease-in-out}
+.orders-table tbody tr:hover{background:#1a0a2e !important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.status-badge{border-radius:999px;padding:4px 10px;font-weight:700;font-size:12px}
+</style>';
+
 requireSeller();
 
 $userId = $_SESSION['user_id'];
@@ -141,8 +156,8 @@ function sendOrderStatusUpdateEmail($customerEmail, $customerName, $orderId, $ne
                 <tr>
                     <td style='padding: 10px; border-bottom: 1px solid #eee;'>" . htmlspecialchars($item['product_name']) . "</td>
                     <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>" . (int)$item['quantity'] . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>$" . number_format((float)$item['item_price'], 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>$" . number_format($itemTotal, 2) . "</td>
+                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format((float)$item['item_price'], 2) . "</td>
+                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format($itemTotal, 2) . "</td>
                 </tr>";
         }
         
@@ -180,7 +195,7 @@ function sendOrderStatusUpdateEmail($customerEmail, $customerName, $orderId, $ne
                     <tfoot>
                         <tr style='background: #e8f5e8; font-weight: bold;'>
                             <td colspan='3' style='padding: 15px; text-align: right;'>Total Amount:</td>
-                            <td style='padding: 15px; text-align: right; color: " . $config['color'] . "; font-size: 18px;'>$" . number_format((float)$totalAmount, 2) . "</td>
+                            <td style='padding: 15px; text-align: right; color: " . $config['color'] . "; font-size: 18px;'>₱" . number_format((float)$totalAmount, 2) . "</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1038,7 +1053,7 @@ function showStatusDropdown(orderId, preselectedStatus) {
 
 </body>
 </html>
-<?php require_once 'includes/footer.php'; ?>
+
 // Ensure the file ends cleanly
 
 

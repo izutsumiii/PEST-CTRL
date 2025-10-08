@@ -2,13 +2,24 @@
 require_once 'includes/seller_header.php';
 require_once 'config/database.php';
 
+// Unify with seller dashboard theme
+echo '<style>
+body{background:#130325 !important;}
+main{margin-left:240px;}
+.section{background:rgba(255,255,255,0.1);padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.3);color:#F9F9F9;backdrop-filter:blur(10px)}
+.admin-table, .products-table{width:100%;border-collapse:collapse;background:rgba(255,255,255,0.05);border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+.admin-table thead th, .products-table thead th{background:#34495e;color:#ffffff;text-align:left;padding:15px;font-weight:600;border-bottom:1px solid #2e3f50}
+.admin-table td, .products-table td{padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);color:#F9F9F9}
+.admin-table tr:hover, .products-table tr:hover{background:#1a0a2e !important}
+.btn{padding:8px 12px;border-radius:6px;font-weight:600;border:none;cursor:pointer}
+.btn-primary{background:#FFD736;color:#130325}
+.btn-primary:hover{filter:brightness(0.95)}
+.btn-secondary{background:#6c757d;color:#fff}
+</style>';
+
 requireSeller();
 
 $userId = $_SESSION['user_id'];
-
-/* ---------------------------
-   PRODUCT MANAGEMENT LOGIC
-----------------------------*/
 
 // Handle product actions (add, edit, delete, toggle)
 if (isset($_POST['add_product'])) {

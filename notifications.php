@@ -59,7 +59,6 @@ function statusBadge($status) {
 <main style="background:#130325; min-height:100vh; padding: 80px 0 60px 0;">
   <div style="max-width: 1000px; margin: 0 auto; padding: 0 20px;">
     <h1 style="color:#ffffff; text-align:center; margin:0 0 30px 0;">Notifications</h1>
-    <p style="color:#ffffff; text-align:center; opacity:0.95; margin:0 0 28px 0;">Latest updates on your orders from sellers</p>
 
     <?php if (empty($events)): ?>
       <div style="background:#1a0a2e; border:1px solid #2d1b4e; color:#F9F9F9; border-radius:8px; padding:20px; text-align:center;">No notifications yet.</div>
