@@ -287,7 +287,7 @@ function resolveProductImageUrl($url) {
 .about-pestctrl h3 { color: #FFD736; font-weight: 700; margin: 16px 0 8px; font-size: 16px; }
 .about-pestctrl p { color: #ffffff; line-height: 1.7; margin: 0 0 12px 0; font-size: 13px; }
 .about-toggle { color: #ffffff; font-weight: 700; cursor: pointer; display: inline-block; margin-top: 8px; }
-.about-spacer { height: 60px; }
+.about-spacer { height: 30px; }
 </style>
 
 <section class="about-pestctrl">
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
 @media (max-width:768px){ .shopby-grid{ grid-template-columns:1fr; } }
 </style>
 
-<section class="shopby" style="padding-top: 10px;">
+<section class="shopby" style="padding-top: 2px;">
   <div class="container">
     <h2 style="text-transform: uppercase; color:#ffffff; font-weight:800; text-align:center; margin: 0 0 16px 0;">Shop by Pest</h2>
     <div class="benefits-grid" style="margin-bottom:24px;">
@@ -1066,14 +1066,14 @@ p, span, div {
 
 .compare-content h4 { 
     margin: 0; 
-    color: #2c3e50; 
-    font-size: 0.8rem; 
+    color: #ffffff; 
+    font-size: 1rem; 
     font-weight: 600; 
 }
 
 #compare-items { display: flex; gap: 10px; flex: 1; flex-wrap: wrap; min-width: 200px; }
 
-.compare-item { display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); padding: 8px 12px; border-radius: 20px; font-size: 14px; border: 1px solid var(--border-secondary); }
+.compare-item { display: flex; align-items: center; gap: 8px; background: rgba(0, 123, 255, 0.1); padding: 8px 12px; border-radius: 20px; font-size: 14px; border: 2px solid #007bff; transform: translateY(-2px); }
 .compare-item img { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; }
 .compare-item span { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .remove-compare { background: none; border: none; color: #dc3545; font-size: 18px; cursor: pointer; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; }

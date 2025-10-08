@@ -1088,10 +1088,10 @@ p, span, div {
 }
 
 .compare-content h4 {
-    margin: 0;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    font-weight: 600;
+    margin: 0; 
+    color: #ffffff; 
+    font-size: 1rem; 
+    font-weight: 600; 
 }
 
 #compare-items {
@@ -1105,18 +1105,13 @@ p, span, div {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(248, 249, 250, 0.9);
+    background: rgba(0, 123, 255, 0.1);
     padding: 12px 16px;
     border-radius: 25px;
     font-size: 0.9rem;
-    border: 2px solid #dee2e6;
+    border: 2px solid #007bff;
     transition: all 0.3s ease;
     font-weight: 500;
-}
-
-.compare-item:hover {
-    background: rgba(0, 123, 255, 0.1);
-    border-color: #007bff;
     transform: translateY(-2px);
 }
 

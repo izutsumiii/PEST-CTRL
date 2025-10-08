@@ -248,8 +248,148 @@ require_once 'includes/header.php';
 </div>
 </main>
 
+<!-- Custom Remove Confirmation Popup -->
+<div id="removeConfirmModal" class="remove-confirm-modal" style="display: none;">
+    <div class="remove-confirm-content">
+        <div class="remove-confirm-header">
+            <h3>Remove Item</h3>
+            <button class="close-btn" onclick="hideRemoveConfirm()">&times;</button>
+        </div>
+        <div class="remove-confirm-body">
+            <p>Are you sure you want to remove this item from checkout?</p>
+        </div>
+        <div class="remove-confirm-footer">
+            <button class="btn-cancel" onclick="hideRemoveConfirm()">Cancel</button>
+            <button class="btn-confirm" onclick="confirmRemove()">Remove Item</button>
+        </div>
+    </div>
+</div>
+
 <?php require_once 'includes/footer.php'; ?>
 <style>
+/* Custom Remove Confirmation Popup Styles */
+.remove-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-confirm-content {
+    background: #1a0a2e;
+    border: 2px solid #FFD736;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: popupSlideIn 0.3s ease-out;
+}
+
+.remove-confirm-header {
+    background: #130325;
+    padding: 20px;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px solid #FFD736;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remove-confirm-header h3 {
+    color: #FFD736;
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #FFD736;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
+.close-btn:hover {
+    background: rgba(255, 215, 54, 0.2);
+    transform: scale(1.1);
+}
+
+.remove-confirm-body {
+    padding: 25px 20px;
+    text-align: center;
+}
+
+.remove-confirm-body p {
+    color: #F9F9F9;
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.remove-confirm-footer {
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.btn-cancel, .btn-confirm {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1rem;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: #ffffff;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btn-confirm {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.btn-confirm:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+@keyframes popupSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
 /* Layout and visual styles copied from checkout.php */
 body { background: #130325 !important; min-height: 100vh; }
 .checkout-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
@@ -268,11 +408,15 @@ h1 { color: var(--primary-light); text-align: center; margin: 20px 0; font-size:
 .item-details { flex-grow: 1; }
 .item-details h4 { margin: 0 0 5px 0; font-size: 16px; }
 .item-details p { margin: 2px 0; color: #666; font-size: 14px; }
-.item-total { font-weight: bold; font-size: 16px; margin-right: 10px; }
+/* Make all price text white */
+.item-details p, .review-item-info, .seller-total, .item-total, .order-total, .review-subtotal {
+    color: #ffffff !important;
+}
+.item-total { font-weight: bold; font-size: 16px; margin-right: 10px; color: #ffffff !important; }
 .remove-item-btn { background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; line-height: 1; }
 .remove-item-btn:hover { background-color: #c82333; transform: scale(1.1); }
 .remove-item-btn:disabled { background-color: #6c757d; cursor: not-allowed; transform: none; }
-.order-total { border-top: 2px solid var(--accent-yellow); padding-top: 15px; font-size: 18px; text-align: right; color: var(--primary-light); }
+.order-total { border-top: 2px solid var(--accent-yellow); padding-top: 15px; font-size: 18px; text-align: right; color: #ffffff !important; }
 .checkout-form { background-color: var(--primary-dark); border: 1px solid var(--accent-yellow); padding: 20px; border-radius: 8px; }
 .checkout-form h2 { color: var(--primary-light); border-bottom: 2px solid var(--accent-yellow); padding-bottom: 10px; margin-bottom: 20px; }
 .form-group { margin-bottom: 20px; }
@@ -297,7 +441,7 @@ h1 { color: var(--primary-light); text-align: center; margin: 20px 0; font-size:
 .seller-group { margin-bottom: 30px; border: 2px solid rgba(255, 215, 54, 0.3); border-radius: 8px; padding: 15px; background: rgba(255, 215, 54, 0.05); }
 .seller-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 2px solid var(--accent-yellow); }
 .seller-header h3 { color: var(--accent-yellow); margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-.seller-total { color: var(--primary-light); font-weight: bold; font-size: 16px; }
+.seller-total { color: #ffffff !important; font-weight: bold; font-size: 16px; }
 .seller-group .order-item { border-bottom: 1px solid rgba(255, 215, 54, 0.2); }
 .seller-group .order-item:last-child { border-bottom: none; }
 @media (max-width: 768px) {
@@ -338,7 +482,7 @@ h1 { color: var(--primary-light); text-align: center; margin: 20px 0; font-size:
 .review-item-details { flex-grow: 1; }
 .review-item-name { font-weight: 500; margin-bottom: 5px; }
 .review-item-info { font-size: 14px; opacity: 0.8; }
-.review-subtotal { text-align: right; padding-top:10px; margin-top:10px; border-top:1px solid rgba(255, 215, 54, 0.3); color: var(--primary-light); font-weight: bold; }
+.review-subtotal { text-align: right; padding-top:10px; margin-top:10px; border-top:1px solid rgba(255, 215, 54, 0.3); color: #ffffff !important; font-weight: bold; }
 .review-grand-total { text-align:right; font-size:24px; color: var(--accent-yellow); margin-top:20px; padding-top:20px; border-top:2px solid var(--accent-yellow); }
 .review-actions { display:flex; gap:15px; justify-content:flex-end; margin-top:30px; }
 .btn.btn-primary { background-color: #007bff; color:#fff; font-weight:500; }
@@ -476,29 +620,61 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
+// Global variables for the remove confirmation
+let currentProductId = null;
+let currentRow = null;
+
+function showRemoveConfirm(productId, row) {
+    currentProductId = productId;
+    currentRow = row;
+    document.getElementById('removeConfirmModal').style.display = 'flex';
+}
+
+function hideRemoveConfirm() {
+    document.getElementById('removeConfirmModal').style.display = 'none';
+    currentProductId = null;
+    currentRow = null;
+}
+
+function confirmRemove() {
+    if (!currentProductId) return;
+    
+    const fd = new FormData();
+    fd.append('action', 'remove_item');
+    fd.append('product_id', currentProductId);
+    
+    fetch('', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Remove from DOM and optionally reload to refresh totals
+                if (currentRow) currentRow.remove();
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to remove item');
+            }
+        })
+        .catch(() => alert('Failed to remove item'))
+        .finally(() => {
+            hideRemoveConfirm();
+        });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const removeButtons = document.querySelectorAll('.remove-item-btn');
     removeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const productId = this.dataset.productId;
             const row = this.closest('.cart-item');
-            if (!confirm('Remove this item from checkout?')) return;
-            const fd = new FormData();
-            fd.append('action', 'remove_item');
-            fd.append('product_id', productId);
-            fetch('', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        // Remove from DOM and optionally reload to refresh totals
-                        if (row) row.remove();
-                        location.reload();
-                    } else {
-                        alert(data.message || 'Failed to remove item');
-                    }
-                })
-                .catch(() => alert('Failed to remove item'));
+            showRemoveConfirm(productId, row);
         });
+    });
+    
+    // Close modal when clicking outside
+    document.getElementById('removeConfirmModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideRemoveConfirm();
+        }
     });
 });
 </script>

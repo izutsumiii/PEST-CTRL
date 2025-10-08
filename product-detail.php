@@ -180,15 +180,33 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 ?>
 
 <style>
-/* Product Detail Styles */
+/* Force body and html to have full background coverage */
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: #130325 !important;
+}
+
+/* Main container styling */
+main {
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 8px 0 100px 0 !important;
+    min-height: calc(100vh - 80px) !important;
+}
+
+/* Product Detail Styles - Dark Theme */
 .product-detail {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
-    margin: 20px 0;
-    background: #f8f9fa;
-    padding: 20px;
+    margin: 40px 0;
+    background: var(--primary-dark);
+    padding: 25px;
     border-radius: 8px;
+    box-shadow: 0 4px 20px var(--shadow-light);
+    border: 1px solid var(--accent-yellow);
 }
 
 .product-images {
@@ -202,18 +220,18 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
     max-width: 400px;
     height: auto;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .product-info {
-    background: white;
+    background: var(--primary-dark);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid var(--accent-yellow);
 }
 
 .product-info h1 {
-    color: #130325;
+    color: var(--primary-light);
     font-size: 1.8rem;
     margin-bottom: 15px;
 }
@@ -232,18 +250,18 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 }
 
 .seller {
-    color: #666;
+    color: var(--primary-light);
     margin-bottom: 10px;
 }
 
 .category-info {
-    color: #666;
+    color: var(--primary-light);
     font-size: 0.9rem;
     margin-bottom: 10px;
 }
 
 .rating {
-    color: #130325;
+    color: var(--primary-light);
     font-weight: 600;
     margin-bottom: 20px;
 }
@@ -257,14 +275,16 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 
 .quantity-form label {
     font-weight: 600;
-    color: #333;
+    color: var(--primary-light);
 }
 
 .quantity-form input {
     width: 80px;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #ced4da;
     border-radius: 4px;
+    background: #ffffff;
+    color: #130325;
 }
 
 .add-to-cart-btn {
@@ -284,38 +304,54 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 }
 
 .product-description {
-    background: white;
-    padding: 20px;
+    background: var(--primary-dark);
+    padding: 15px;
     border-radius: 8px;
     margin: 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px var(--shadow-light);
+    border: 1px solid var(--accent-yellow);
 }
 
 .product-description h2 {
-    color: #130325;
-    margin-bottom: 15px;
+    color: var(--primary-light);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent-yellow);
+    font-size: 1.2rem;
 }
 
 .description-content {
-    color: #333;
-    line-height: 1.6;
+    color: var(--primary-light);
+    line-height: 1.5;
+    font-size: 0.5rem;
+}
+
+.description-content p {
+    color: var(--primary-light);
+    line-height: 1.5;
+    font-size: 1rem;
+    margin: 0;
 }
 
 .product-reviews {
-    background: white;
-    padding: 20px;
+    background: var(--primary-dark);
+    padding: 25px;
     border-radius: 8px;
     margin: 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px var(--shadow-light);
+    border: 1px solid var(--accent-yellow);
 }
 
 .product-reviews h2 {
-    color: #130325;
+    color: var(--primary-light);
     margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-yellow);
+    font-size: 1.2rem;
 }
 
 .review {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(255, 215, 54, 0.2);
     padding: 15px 0;
 }
 
@@ -324,30 +360,38 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 }
 
 .review h4 {
-    color: #130325;
+    color: var(--primary-light);
     margin-bottom: 5px;
+    font-size: 0.9rem;
 }
 
 .review p {
     margin-bottom: 5px;
-    color: #333;
+    color: var(--primary-light);
+    font-size: 1rem;
 }
 
 .review small {
-    color: #666;
+    color: var(--primary-light);
+    opacity: 0.8;
+    font-size: 0.8rem;
 }
 
 .add-review {
-    background: white;
-    padding: 20px;
+    background: var(--primary-dark);
+    padding: 25px;
     border-radius: 8px;
     margin: 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px var(--shadow-light);
+    border: 1px solid var(--accent-yellow);
 }
 
 .add-review h3 {
-    color: #130325;
+    color: var(--primary-light);
     margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-yellow);
+    font-size: 1.2rem;
 }
 
 .review-form {
@@ -364,15 +408,17 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 
 .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--primary-light);
 }
 
 .form-group select,
 .form-group textarea {
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1rem;
+    background: #ffffff;
+    color: #130325;
 }
 
 .form-group textarea {
@@ -381,8 +427,8 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 }
 
 .submit-review-btn {
-    background: linear-gradient(135deg, #130325, #1a0a2e);
-    color: #F9F9F9;
+    background: linear-gradient(135deg, #FFD736, #e6c230);
+    color: #130325;
     border: none;
     padding: 12px 24px;
     border-radius: 6px;
@@ -394,7 +440,7 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 
 .submit-review-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(19, 3, 37, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 215, 54, 0.3);
 }
 
 .message {
@@ -419,6 +465,7 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
     .product-detail {
         grid-template-columns: 1fr;
         gap: 20px;
+        margin: 20px 0;
     }
     
     .quantity-form {
@@ -428,6 +475,8 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
 }
 </style>
 
+<main>
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
 <div class="product-detail">
     <div class="product-images">
         <?php if (!empty($images)): ?>
@@ -529,5 +578,8 @@ $sellerDisplayName = trim($product['seller_first_name'] . ' ' . $product['seller
         <?php endif; ?>
     </div>
 <?php endif; ?>
+</div>
+</div>
+</main>
 
 <?php require_once 'includes/footer.php'; ?>
