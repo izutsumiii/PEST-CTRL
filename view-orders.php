@@ -9,21 +9,6 @@ require 'PHPMailer/PHPMailer/src/SMTP.php';
 require_once 'includes/seller_header.php';
 require_once 'config/database.php';
 
-// Seller dashboard theme styles (section/table unification)
-echo '<style>
-body{background:#130325 !important;}
-main{margin-left:240px;}
-.section{background:rgba(255,255,255,0.1);padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.3);color:#F9F9F9;backdrop-filter:blur(10px)}
-.orders-table-container{overflow-x:auto;margin-bottom:15px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:rgba(255,255,255,0.05)}
-.orders-table{width:100%;border-collapse:collapse;font-size:.875rem}
-.orders-table thead{background:rgba(255,255,255,0.1);position:sticky;top:0;z-index:10}
-.orders-table th{padding:12px 12px;text-align:left;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#FFD736;border-bottom:2px solid rgba(255,255,255,0.2)}
-.orders-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);color:#F9F9F9}
-.orders-table tbody tr{background:rgba(255,255,255,0.03);transition:all .15s ease-in-out}
-.orders-table tbody tr:hover{background:#1a0a2e !important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
-.status-badge{border-radius:999px;padding:4px 10px;font-weight:700;font-size:12px}
-</style>';
-
 requireSeller();
 
 $userId = $_SESSION['user_id'];
@@ -104,150 +89,24 @@ function sendOrderStatusUpdateEmail($customerEmail, $customerName, $orderId, $ne
         $mail->addAddress($customerEmail, $customerName);
         
         $statusConfig = [
-            'pending' => [
-                'emoji' => '⏳',
-                'title' => 'Order Received',
-                'color' => '#ffc107',
-                'message' => 'Your order has been received and is awaiting processing.',
-                'next_step' => 'We\'ll start preparing your order soon.'
-            ],
-            'processing' => [
-                'emoji' => '🔄',
-                'title' => 'Order Confirmed & Processing',
-                'color' => '#007bff',
-                'message' => 'Great news! Your order has been confirmed and is now being prepared.',
-                'next_step' => 'Your items are being carefully prepared for shipment.'
-            ],
-            'shipped' => [
-                'emoji' => '🚚',
-                'title' => 'Order Shipped',
-                'color' => '#17a2b8',
-                'message' => 'Your order is on its way!',
-                'next_step' => 'You\'ll receive a tracking number shortly. Expected delivery: 3-5 business days.'
-            ],
-            'delivered' => [
-                'emoji' => '✅',
-                'title' => 'Order Delivered',
-                'color' => '#28a745',
-                'message' => 'Your order has been successfully delivered!',
-                'next_step' => 'We hope you enjoy your purchase. Please consider leaving a review.'
-            ],
-            'cancelled' => [
-                'emoji' => '❌',
-                'title' => 'Order Cancelled',
-                'color' => '#dc3545',
-                'message' => 'Your order has been cancelled by the seller.',
-                'next_step' => 'If you have any questions, please contact our support team.'
-            ]
+            'pending' => ['emoji' => '⏳', 'title' => 'Order Received', 'color' => '#ffc107', 'message' => 'Your order has been received and is awaiting processing.', 'next_step' => 'We\'ll start preparing your order soon.'],
+            'processing' => ['emoji' => '🔄', 'title' => 'Order Confirmed & Processing', 'color' => '#007bff', 'message' => 'Great news! Your order has been confirmed and is now being prepared.', 'next_step' => 'Your items are being carefully prepared for shipment.'],
+            'shipped' => ['emoji' => '🚚', 'title' => 'Order Shipped', 'color' => '#17a2b8', 'message' => 'Your order is on its way!', 'next_step' => 'You\'ll receive a tracking number shortly. Expected delivery: 3-5 business days.'],
+            'delivered' => ['emoji' => '✅', 'title' => 'Order Delivered', 'color' => '#28a745', 'message' => 'Your order has been successfully delivered!', 'next_step' => 'We hope you enjoy your purchase. Please consider leaving a review.'],
+            'cancelled' => ['emoji' => '❌', 'title' => 'Order Cancelled', 'color' => '#dc3545', 'message' => 'Your order has been cancelled by the seller.', 'next_step' => 'If you have any questions, please contact our support team.']
         ];
 
-        $config = $statusConfig[$newStatus] ?? [
-            'emoji' => '📋',
-            'title' => 'Order Status Updated',
-            'color' => '#6c757d',
-            'message' => 'Your order status has been updated.',
-            'next_step' => 'We\'ll keep you informed of any further updates.'
-        ];
+        $config = $statusConfig[$newStatus] ?? ['emoji' => '📋', 'title' => 'Order Status Updated', 'color' => '#6c757d', 'message' => 'Your order status has been updated.', 'next_step' => 'We\'ll keep you informed of any further updates.'];
 
         $itemsList = '';
         foreach ($orderItems as $item) {
             $itemTotal = $item['quantity'] * $item['item_price'];
-            $itemsList .= "
-                <tr>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee;'>" . htmlspecialchars($item['product_name']) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>" . (int)$item['quantity'] . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format((float)$item['item_price'], 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format($itemTotal, 2) . "</td>
-                </tr>";
+            $itemsList .= "<tr><td style='padding: 10px; border-bottom: 1px solid #eee;'>" . htmlspecialchars($item['product_name']) . "</td><td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>" . (int)$item['quantity'] . "</td><td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format((float)$item['item_price'], 2) . "</td><td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>₱" . number_format($itemTotal, 2) . "</td></tr>";
         }
         
         $mail->isHTML(true);
         $mail->Subject = $config['emoji'] . ' Order Update - Order #' . str_pad($orderId, 6, '0', STR_PAD_LEFT);
-        $mail->Body = "
-        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'>
-            <div style='text-align: center; border-bottom: 2px solid " . $config['color'] . "; padding-bottom: 20px;'>
-                <h1 style='color: " . $config['color'] . "; margin: 0;'>" . $config['title'] . "</h1>
-            </div>
-            <div style='padding: 30px 0;'>
-                <h2 style='color: #333; margin-bottom: 20px;'>Hello " . htmlspecialchars($customerName) . ",</h2>
-                <p style='color: #666; font-size: 16px; line-height: 1.6;'>
-                    " . $config['message'] . "
-                </p>
-                
-                <div style='background: linear-gradient(135deg, " . $config['color'] . ", " . $config['color'] . "dd); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;'>
-                    <h3 style='margin: 0; font-size: 18px;'>Order #" . str_pad($orderId, 6, '0', STR_PAD_LEFT) . "</h3>
-                    <p style='margin: 10px 0 0 0; opacity: 0.9;'>Status: " . ucfirst($newStatus) . "</p>
-                </div>
-                
-                <h3 style='color: #333; margin: 30px 0 15px 0;'>Order Details:</h3>
-                <table style='width: 100%; border-collapse: collapse; background: #f9f9f9; border-radius: 8px; overflow: hidden;'>
-                    <thead>
-                        <tr style='background: " . $config['color'] . "; color: white;'>
-                            <th style='padding: 12px; text-align: left;'>Product</th>
-                            <th style='padding: 12px; text-align: center;'>Qty</th>
-                            <th style='padding: 12px; text-align: right;'>Price</th>
-                            <th style='padding: 12px; text-align: right;'>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {$itemsList}
-                    </tbody>
-                    <tfoot>
-                        <tr style='background: #e8f5e8; font-weight: bold;'>
-                            <td colspan='3' style='padding: 15px; text-align: right;'>Total Amount:</td>
-                            <td style='padding: 15px; text-align: right; color: " . $config['color'] . "; font-size: 18px;'>₱" . number_format((float)$totalAmount, 2) . "</td>
-                        </tr>
-                    </tfoot>
-                </table>
-                
-                <div style='background-color: " . $config['color'] . "20; border: 1px solid " . $config['color'] . "; padding: 20px; border-radius: 8px; margin: 30px 0;'>
-                    <h4 style='margin: 0 0 10px 0; color: " . $config['color'] . ";'>What's next?</h4>
-                    <p style='margin: 0; color: #555;'>" . $config['next_step'] . "</p>
-                </div>";
-
-        if ($newStatus === 'shipped') {
-            $mail->Body .= "
-                <div style='background-color: #e8f4f8; border: 1px solid #17a2b8; padding: 20px; border-radius: 8px; margin: 30px 0;'>
-                    <h4 style='margin: 0 0 10px 0; color: #0c5460;'>📦 Shipping Information</h4>
-                    <p style='margin: 0 0 10px 0; color: #555;'>Your package is now in transit!</p>
-                    <p style='margin: 0; color: #555;'><strong>Tracking:</strong> A tracking number will be sent to you shortly.</p>
-                </div>";
-        } elseif ($newStatus === 'delivered') {
-            $mail->Body .= "
-                <div style='background-color: #d4edda; border: 1px solid #28a745; padding: 20px; border-radius: 8px; margin: 30px 0;'>
-                    <h4 style='margin: 0 0 10px 0; color: #155724;'>🎉 Delivered Successfully!</h4>
-                    <p style='margin: 0 0 10px 0; color: #555;'>We hope you're satisfied with your purchase!</p>
-                    <p style='margin: 0; color: #555;'>If you have any issues, please contact us within 7 days.</p>
-                </div>";
-        } elseif ($newStatus === 'cancelled') {
-            $reasonText = '';
-            if (!empty($cancellationReason)) {
-                $reasonText = "
-                    <div style='background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 15px 0;'>
-                        <h5 style='margin: 0 0 8px 0; color: #856404;'>📝 Cancellation Reason:</h5>
-                        <p style='margin: 0; color: #555; font-style: italic;'>" . nl2br(htmlspecialchars($cancellationReason)) . "</p>
-                    </div>";
-            }
-            
-            $mail->Body .= "
-                <div style='background-color: #f8d7da; border: 1px solid #dc3545; padding: 20px; border-radius: 8px; margin: 30px 0;'>
-                    <h4 style='margin: 0 0 10px 0; color: #721c24;'>Order Cancellation</h4>
-                    <p style='margin: 0 0 10px 0; color: #555;'>Your order has been cancelled by the seller.</p>
-                    <p style='margin: 0; color: #555;'>Any payments will be refunded within 3-5 business days.</p>
-                </div>
-                {$reasonText}";
-        }
-
-        $mail->Body .= "
-                <div style='text-align: center; margin: 30px 0;'>
-                    <p style='color: #666; margin: 0;'>Thank you for shopping with us!</p>
-                </div>
-            </div>
-            <div style='text-align: center; border-top: 1px solid #eee; padding-top: 20px; color: #999; font-size: 14px;'>
-                <p>If you have any questions, please contact our support team.</p>
-                <p style='margin: 0;'>© " . date('Y') . " E-Commerce Store</p>
-            </div>
-        </div>";
+        $mail->Body = "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'><div style='text-align: center; border-bottom: 2px solid " . $config['color'] . "; padding-bottom: 20px;'><h1 style='color: " . $config['color'] . "; margin: 0;'>" . $config['title'] . "</h1></div><div style='padding: 30px 0;'><h2 style='color: #333; margin-bottom: 20px;'>Hello " . htmlspecialchars($customerName) . ",</h2><p style='color: #666; font-size: 16px; line-height: 1.6;'>" . $config['message'] . "</p><div style='background: linear-gradient(135deg, " . $config['color'] . ", " . $config['color'] . "dd); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;'><h3 style='margin: 0; font-size: 18px;'>Order #" . str_pad($orderId, 6, '0', STR_PAD_LEFT) . "</h3><p style='margin: 10px 0 0 0; opacity: 0.9;'>Status: " . ucfirst($newStatus) . "</p></div></div></div>";
         
         $mail->send();
         return true;
@@ -263,12 +122,7 @@ if (isset($_POST['update_status'])) {
     $newStatus = sanitizeInput($_POST['status']);
     $cancellationReason = isset($_POST['cancellation_reason']) ? sanitizeInput($_POST['cancellation_reason']) : '';
     
-    $stmt = $pdo->prepare("SELECT o.* 
-                          FROM orders o
-                          JOIN order_items oi ON o.id = oi.order_id
-                          JOIN products p ON oi.product_id = p.id
-                          WHERE o.id = ? AND p.seller_id = ?
-                          GROUP BY o.id");
+    $stmt = $pdo->prepare("SELECT o.* FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE o.id = ? AND p.seller_id = ? GROUP BY o.id");
     $stmt->execute([$orderId, $userId]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -277,156 +131,26 @@ if (isset($_POST['update_status'])) {
         $allowedTransitions = getAllowedStatusTransitions($currentStatus);
         
         if (!in_array($newStatus, $allowedTransitions)) {
-            echo "<div class='status-update-message error'>
-                    <div class='message-header'>
-                        <span class='status-badge error'>❌ ERROR</span>
-                        <strong>Invalid status transition</strong>
-                    </div>
-                    <p>Cannot change status from <strong>" . ucfirst($currentStatus) . "</strong> to <strong>" . ucfirst($newStatus) . "</strong>.</p>
-                  </div>";
+            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Invalid status transition from ' . ucfirst($currentStatus) . ' to ' . ucfirst($newStatus)];
         }
         elseif ($currentStatus === 'pending' && $newStatus === 'processing' && isWithinGracePeriod($order['created_at'], $pdo)) {
             $remaining = getRemainingGracePeriod($order['created_at'], $pdo);
-            $gracePeriodMinutes = $remaining['grace_period_minutes'];
-            echo "<div class='status-update-message error'>
-                    <div class='message-header'>
-                        <span class='status-badge error'>❌ BLOCKED</span>
-                        <strong>Cannot process Order #" . str_pad($orderId, 6, '0', STR_PAD_LEFT) . " yet</strong>
-                    </div>
-                    <p>This order is in the customer priority cancellation period ({$gracePeriodMinutes} minutes). Please wait {$remaining['minutes']} minutes and {$remaining['seconds']} seconds before processing.</p>
-                  </div>";
+            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Order in grace period. Wait ' . $remaining['minutes'] . 'm ' . $remaining['seconds'] . 's'];
         }
         else {
-            $oldStatus = $order['status'];
-            
             $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
             $result = $stmt->execute([$newStatus, $orderId]);
             
             if ($result) {
-                try {
-                    // Verify $userId is valid - it should be set from requireSeller() at the top
-                    if (!isset($userId) || empty($userId)) {
-                        // Fallback: try to get from session directly
-                        $userId = $_SESSION['user_id'] ?? null;
-                    }
-                    
-                    if ($userId !== null) {
-                        $stmt = $pdo->prepare("INSERT INTO order_status_history (order_id, status, notes, updated_by) 
-                                            VALUES (?, ?, ?, ?)");
-                        $notes = "Status updated from " . $oldStatus . " to " . $newStatus . " by seller.";
-                        if ($newStatus === 'cancelled' && !empty($cancellationReason)) {
-                            $notes .= " Reason: " . $cancellationReason;
-                        }
-                        $stmt->execute([$orderId, $newStatus, $notes, $userId]);
-                    } else {
-                        error_log("Order status history not created: No valid user ID in session");
-                    }
-                } catch (PDOException $e) {
-                    error_log("Order status history insert failed: " . $e->getMessage());
-                }
-                
-                $customerName = '';
-                $customerEmail = '';
-                
-                if ($order['user_id']) {
-                    $stmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = ?");
-                    $stmt->execute([$order['user_id']]);
-                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($user) {
-                        $customerName = trim($user['first_name'] . ' ' . $user['last_name']);
-                        $customerEmail = $user['email'];
-                    }
-                } else {
-                    $guestInfo = $_SESSION['guest_order_' . $orderId] ?? null;
-                    if ($guestInfo) {
-                        $customerName = $guestInfo['customer_name'];
-                        $customerEmail = $guestInfo['customer_email'];
-                    }
-                }
-                
-                if ($customerEmail) {
-                    $stmt = $pdo->prepare("SELECT oi.quantity, oi.price as item_price, p.name as product_name
-                                          FROM order_items oi 
-                                          JOIN products p ON oi.product_id = p.id
-                                          WHERE oi.order_id = ? AND p.seller_id = ?");
-                    $stmt->execute([$orderId, $userId]);
-                    $orderItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    
-                    $sellerTotal = 0;
-                    foreach ($orderItems as $item) {
-                        $sellerTotal += (float)$item['quantity'] * (float)$item['item_price'];
-                    }
-                    
-                    $emailSent = sendOrderStatusUpdateEmail($customerEmail, $customerName, $orderId, $newStatus, $oldStatus, $orderItems, $sellerTotal, $pdo, $cancellationReason);
-                    
-                    $statusLabels = [
-                        'pending' => '⏳ PENDING',
-                        'processing' => '🔄 PROCESSING', 
-                        'shipped' => '🚚 SHIPPED',
-                        'delivered' => '✅ DELIVERED',
-                        'cancelled' => '❌ CANCELLED'
-                    ];
-                    
-                    $statusLabel = $statusLabels[$newStatus] ?? strtoupper($newStatus);
-                    $emailStatus = $emailSent ? "✅ Email notification sent to customer." : "⚠️ Status updated but email notification failed.";
-                    
-                    echo "<div class='status-update-message " . $newStatus . "'>
-                            <div class='message-header'>
-                                <span class='status-badge " . $newStatus . "'>" . $statusLabel . "</span>
-                                <strong>Order #" . str_pad($orderId, 6, '0', STR_PAD_LEFT) . " status updated!</strong>
-                            </div>
-                            <p>Order status changed from <strong>" . ucfirst($oldStatus) . "</strong> to <strong>" . ucfirst($newStatus) . "</strong>.</p>
-                            <p><small>" . $emailStatus . "</small></p>
-                          </div>";
-                } else {
-                    $statusLabels = [
-                        'pending' => '⏳ PENDING',
-                        'processing' => '🔄 PROCESSING', 
-                        'shipped' => '🚚 SHIPPED',
-                        'delivered' => '✅ DELIVERED',
-                        'cancelled' => '❌ CANCELLED'
-                    ];
-                    
-                    $statusLabel = $statusLabels[$newStatus] ?? strtoupper($newStatus);
-                    
-                    echo "<div class='status-update-message " . $newStatus . "'>
-                            <div class='message-header'>
-                                <span class='status-badge " . $newStatus . "'>" . $statusLabel . "</span>
-                                <strong>Order #" . str_pad($orderId, 6, '0', STR_PAD_LEFT) . " status updated!</strong>
-                            </div>
-                            <p>Order status changed from <strong>" . ucfirst($oldStatus) . "</strong> to <strong>" . ucfirst($newStatus) . "</strong>.</p>
-                            <p><small>⚠️ Customer email not found for notification.</small></p>
-                          </div>";
-                }
-            } else {
-                echo "<div class='status-update-message error'>
-                        <div class='message-header'>
-                            <span class='status-badge error'>❌ ERROR</span>
-                            <strong>Failed to update order status</strong>
-                        </div>
-                        <p>There was an error updating the order status. Please try again.</p>
-                      </div>";
+                $_SESSION['order_message'] = ['type' => 'success', 'text' => 'Order #' . str_pad($orderId, 6, '0', STR_PAD_LEFT) . ' updated to ' . ucfirst($newStatus)];
             }
         }
-    } else {
-        echo "<div class='status-update-message error'>
-                <div class='message-header'>
-                    <span class='status-badge error'>❌ ERROR</span>
-                    <strong>Order not found</strong>
-                </div>
-                <p>The order was not found or you don't have permission to update it.</p>
-              </div>";
     }
+    header("Location: seller-orders.php");
+    exit();
 }
 
-$stmt = $pdo->prepare("SELECT o.*, oi.quantity, oi.price as item_price, p.name as product_name, p.id as product_id,
-                      COALESCE(u.username, 'Guest Customer') as customer_name
-                      FROM orders o
-                      JOIN order_items oi ON o.id = oi.order_id
-                      JOIN products p ON oi.product_id = p.id
-                      LEFT JOIN users u ON o.user_id = u.id
-                      WHERE p.seller_id = ?
-                      ORDER BY o.created_at DESC");
+$stmt = $pdo->prepare("SELECT o.*, oi.quantity, oi.price as item_price, p.name as product_name, p.id as product_id, COALESCE(u.username, 'Guest Customer') as customer_name FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id LEFT JOIN users u ON o.user_id = u.id WHERE p.seller_id = ? ORDER BY o.created_at DESC");
 $stmt->execute([$userId]);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -452,467 +176,296 @@ foreach ($orders as $order) {
     ];
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Order Management</title>
+
 <style>
-.success-message {
-    background-color: #d4edda;
-    color: #155724;
-    padding: 12px 16px;
-    border-radius: 4px;
-    border: 1px solid #c3e6cb;
-    margin: 15px 0;
-    font-weight: 500;
+html, body { background:#130325 !important; margin:0; padding:0; }
+main { background:transparent !important; margin-left: 120px !important; padding: 20px 30px 60px 30px !important; min-height: calc(100vh - 60px) !important; transition: margin-left 0.3s ease; margin-top: -20px !important; }
+main.sidebar-collapsed { margin-left: 0px !important; }
+h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-size:24px !important; font-weight:700 !important; text-align:left !important; margin:0 0 15px 0 !important; padding-left:20px !important; background:none !important; text-shadow:none !important; }
+
+.notification-toast {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    max-width: 400px;
+    background: #1a0a2e;
+    border: 1px solid rgba(255,215,54,0.5);
+    border-left: 4px solid #FFD736;
+    border-radius: 10px;
+    padding: 16px 20px;
+    color: #F9F9F9;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    z-index: 10000;
+    animation: slideInRight 0.3s ease;
 }
 
-.warning-message {
-    background-color: #fff3cd;
-    color: #856404;
-    padding: 12px 16px;
-    border-radius: 4px;
-    border: 1px solid #ffeaa7;
-    margin: 15px 0;
-    font-weight: 500;
+.notification-toast.success { border-left-color: #28a745; }
+.notification-toast.error { border-left-color: #dc3545; }
+
+@keyframes slideInRight {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
-.error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    padding: 12px 16px;
-    border-radius: 4px;
-    border: 1px solid #f5c6cb;
-    margin: 15px 0;
-    font-weight: 500;
+.orders-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    margin-top: -20px !important;
+}
+
+.orders-container h1 {
+    color: #F9F9F9 !important;
+    font-family: var(--font-primary) !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    margin: 0 0 15px 0 !important;
+    padding-left: 20px !important;
+    background: none !important;
+    text-shadow: none !important;
+}
+
+.orders-container > p {
+    color: #ffffff;
+    text-align: center;
+    opacity: 0.95;
+    margin: 0 0 30px 0;
+}
+
+.table-wrapper {
+    background: #1a0a2e;
+    border: 1px solid #2d1b4e;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .orders-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
-    background: #ffffff;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid rgba(19, 3, 37, 0.1);
 }
 
-.orders-table th {
-    background: linear-gradient(135deg, #130325, #241344);
-    color: #F9F9F9;
-    padding: 14px 12px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 14px;
+.orders-table thead {
+    background: rgba(255,215,54,0.1);
     border-bottom: 2px solid #FFD736;
 }
 
+.orders-table th {
+    padding: 16px 12px;
+    text-align: left;
+    color: #FFD736;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .orders-table td {
-    padding: 12px 12px;
-    border-bottom: 1px solid #eee;
+    padding: 16px 12px;
+    color: #F9F9F9;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     vertical-align: top;
-    color: #2c3e50;
 }
 
-.orders-table tr:hover {
-    background-color: #f8f9ff;
+.orders-table tbody tr {
+    transition: all 0.2s ease;
 }
 
-.orders-table ul {
-    margin: 0;
-    padding: 0;
+.orders-table tbody tr:hover {
+    background: rgba(255,215,54,0.05);
+}
+
+.order-id {
+    color: #FFD736;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.customer-name {
+    color: #F9F9F9;
+    font-weight: 600;
+}
+
+.product-list {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.orders-table li {
-    padding: 3px 0;
+.product-item {
+    padding: 4px 0;
+    color: #F9F9F9;
+    opacity: 0.9;
+}
+
+.product-item strong {
+    color: #FFD736;
+}
+
+.total-amount {
+    color: #FFD736;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.order-status {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.status-pending { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
+.status-processing { background: rgba(0,123,255,0.2); color: #007bff; border: 1px solid #007bff; }
+.status-shipped { background: rgba(23,162,184,0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+.status-delivered { background: rgba(40,167,69,0.2); color: #28a745; border: 1px solid #28a745; }
+.status-cancelled { background: rgba(220,53,69,0.2); color: #dc3545; border: 1px solid #dc3545; }
+
+.order-date {
+    color: #F9F9F9;
+    opacity: 0.8;
     font-size: 14px;
 }
 
-.status-select {
-    padding: 6px 10px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
-    background: white;
+.actions-cell {
+    min-width: 200px;
+}
+
+.grace-period-timer {
+    background: rgba(255,193,7,0.15);
+    border: 1px solid #ffc107;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-align: center;
+    color: #ffc107;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.grace-period-ready {
+    background: rgba(40,167,69,0.15);
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn {
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-process {
+    background: #FFD736;
+    color: #130325;
+}
+
+.btn-process:hover {
+    background: #e6c230;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255,215,54,0.4);
+}
+
+.btn-cancel {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.btn-cancel:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220,53,69,0.4);
+}
+
+.status-form {
+    margin-top: 8px;
+}
+
+.status-form label {
+    display: block;
+    color: #FFD736;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.status-select {
+    width: 100%;
+    padding: 8px;
+    background: #ffffff;
+    color: #130325;
+    border: 1px solid #FFD736;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 .status-select:focus {
     outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    box-shadow: 0 0 0 3px rgba(255,215,54,0.3);
 }
 
-.status-select:hover {
-    border-color: #4CAF50;
-}
-
-.orders-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px 20px; }
-
-h1 {
-    color: #130325;
-    margin: 24px 0;
-    font-size: 30px;
-    text-align: center;
-    font-weight: 800;
-    letter-spacing: 1px;
-}
-
-.status-update-message {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    max-width: 360px;
-    background: #130325;
+.no-orders {
+    background: #1a0a2e;
+    border: 1px solid #2d1b4e;
     color: #F9F9F9;
-    border: 1px solid rgba(255, 215, 54, 0.4);
-    border-left: 4px solid #FFD736;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    padding: 14px 16px;
-    z-index: 2000;
-    animation: toastIn 300ms ease-out;
-}
-
-.status-update-message .message-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 8px;
     border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    background: rgba(255, 215, 54, 0.15);
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.no-orders i {
+    font-size: 64px;
     color: #FFD736;
-    border: 1px solid rgba(255, 215, 54, 0.4);
-}
-
-.status-update-message.success { border-left-color: #28a745; }
-.status-update-message.error { border-left-color: #dc3545; }
-.status-update-message.processing { border-left-color: #17a2b8; }
-
-@keyframes toastIn {
-    from { transform: translateY(10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-.btn-process-order,
-.btn-cancel-order {
-    padding: 10px 16px;
-    margin: 4px 0;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    margin-bottom: 20px;
     display: block;
-    width: 100%;
-    text-align: center;
 }
 
-.btn-process-order {
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+@media (max-width: 1200px) {
+    .orders-table { font-size: 12px; }
+    .orders-table th, .orders-table td { padding: 12px 8px; }
 }
 
-.btn-process-order:hover {
-    background: linear-gradient(135deg, #218838, #1aa179);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-    transform: translateY(-1px);
-}
-
-.btn-cancel-order {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-    color: white;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
-}
-
-.btn-cancel-order:hover {
-    background: linear-gradient(135deg, #c82333, #bd2130);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-    transform: translateY(-1px);
-}
-
-.countdown-timer {
-    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-    border: 2px solid #ffc107;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 600;
-    color: #856404;
-    animation: pulse 2s infinite;
-    font-size: 13px;
-}
-
-.countdown-timer.ready {
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    border-color: #28a745;
-    color: #155724;
-    animation: none;
-}
-
-.cancel-modal {
-    display: none;
-    position: fixed;
-    z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.6);
-    animation: fadeIn 0.3s ease;
-}
-
-.cancel-modal-content {
-    background-color: #fff;
-    margin: 10% auto;
-    padding: 0;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    animation: slideDown 0.3s ease;
-}
-
-.cancel-modal-header {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-    color: white;
-    padding: 20px;
-    border-radius: 12px 12px 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.cancel-modal-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.cancel-modal-close {
-    color: white;
-    font-size: 32px;
-    font-weight: bold;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
-    text-align: center;
-    transition: transform 0.2s;
-}
-
-.cancel-modal-close:hover {
-    transform: scale(1.2);
-}
-
-.cancel-modal-body {
-    padding: 25px;
-}
-
-.cancel-modal-body label {
-    display: block;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 10px;
-    font-size: 15px;
-}
-
-.cancel-reason-textarea {
-    width: 100%;
-    min-height: 120px;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: Arial, sans-serif;
-    resize: vertical;
-    transition: border-color 0.3s;
-    box-sizing: border-box;
-}
-
-.cancel-reason-textarea:focus {
-    outline: none;
-    border-color: #dc3545;
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-}
-
-.cancel-modal-footer {
-    padding: 20px 25px;
-    border-top: 1px solid #eee;
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-.btn-modal-cancel {
-    padding: 10px 20px;
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-modal-cancel:hover {
-    background: #5a6268;
-}
-
-.btn-modal-confirm {
-    padding: 10px 20px;
-    background: linear-gradient(135deg, #dc3545, #c82333);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
-}
-
-.btn-modal-confirm:hover {
-    background: linear-gradient(135deg, #c82333, #bd2130);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-    transform: translateY(-1px);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideDown {
-    from { 
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to { 
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
-}
-
-.status-form-label {
-    display: block;
-    font-weight: 600;
-    color: #130325;
-    margin-bottom: 6px;
-    font-size: 13px;
+@media (max-width: 768px) {
+    main { padding: 70px 10px 60px 10px !important; }
+    .table-wrapper { overflow-x: auto; }
+    .orders-table { min-width: 1000px; }
 }
 </style>
-</head>
-<body>
 
-<script>
-// Auto-refresh page every 2 minutes to update grace periods
-setTimeout(function() {
-    location.reload();
-}, 190000);
-// Auto-hide error messages after 5 seconds
-// Auto-hide all notification messages after 4 seconds
-document.addEventListener('DOMContentLoaded', function() {
-    const allMessages = document.querySelectorAll('.status-update-message');
-    
-    allMessages.forEach(function(message) {
-        setTimeout(function() {
-            message.style.transition = 'opacity 0.5s ease-out';
-            message.style.opacity = '0';
-            
-            // Remove from DOM after fade out
-            setTimeout(function() {
-                message.remove();
-            }, 500);
-        }, 4000); // 4 seconds
-    });
-});
-// Countdown timer for grace periods
-function startCountdown(orderId, totalSeconds) {
-    const timerElement = document.getElementById('timer-' + orderId);
-    const selectElement = document.getElementById('status-' + orderId);
-    const processingOption = selectElement ? selectElement.querySelector('option[value="processing"]') : null;
-    
-    if (!timerElement || totalSeconds <= 0) return;
-    
-    let remaining = totalSeconds;
-    
-    const interval = setInterval(function() {
-        if (remaining <= 0) {
-            clearInterval(interval);
-            location.reload(); // Refresh page when grace period ends
-            return;
-        }
-        
-        const minutes = Math.floor(remaining / 60);
-        const seconds = remaining % 60;
-        
-        timerElement.innerHTML = `🔒 Processing blocked for: ${minutes}m ${seconds.toString().padStart(2, '0')}s<br><small>Customer priority cancellation period</small>`;
-        
-        // Keep processing option disabled during grace period
-        if (processingOption) {
-            processingOption.disabled = true;
-            processingOption.classList.add('processing-blocked');
-        }
-        
-        remaining--;
-    }, 1000);
-}
-function showStatusDropdown(orderId, preselectedStatus) {
-    // Hide action buttons
-    var actionButtons = document.getElementById('action-buttons-' + orderId);
-    if (actionButtons) {
-        actionButtons.style.display = 'none';
-    }
+<main>
+<div class="orders-container">
+    <?php if (isset($_SESSION['order_message'])): ?>
+        <div class="notification-toast <?php echo $_SESSION['order_message']['type']; ?>">
+            <?php echo htmlspecialchars($_SESSION['order_message']['text']); ?>
+        </div>
+        <?php unset($_SESSION['order_message']); ?>
+    <?php endif; ?>
 
-    // Show status form
-    var form = document.getElementById('status-form-' + orderId);
-    if (form) {
-        form.style.display = 'block';
-
-        // Preselect the status if provided
-        if (preselectedStatus) {
-            var select = form.querySelector('select');
-            if (select) {
-                select.value = preselectedStatus;
-                // Auto-submit if cancelled or processing
-                if (preselectedStatus === 'cancelled' || preselectedStatus === 'processing') {
-                    form.submit();
-                }
-            }
-        }
-    }
-}
-</script>
-
-<h1>View All Orders</h1>
+    <h1>Order Management</h1>
 
 <?php if (empty($groupedOrders)): ?>
-    <p style="text-align: center; color: #666; font-style: italic; padding: 40px;">No orders found.</p>
+        <div class="no-orders">
+            <i class="fas fa-inbox"></i>
+            <p style="font-size: 18px; margin: 0;">No orders found.</p>
+        </div>
 <?php else: ?>
+        <div class="table-wrapper">
 <table class="orders-table">
     <thead>
         <tr>
@@ -922,138 +475,143 @@ function showStatusDropdown(orderId, preselectedStatus) {
             <th>Total</th>
             <th>Status</th>
             <th>Date</th>
-            <th>Action</th>
+                        <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($groupedOrders as $order): ?>
-            <?php 
+                    <?php foreach ($groupedOrders as $order): 
             $withinGracePeriod = isWithinGracePeriod($order['created_at'], $pdo);
             $remainingTime = $withinGracePeriod ? getRemainingGracePeriod($order['created_at'], $pdo) : null;
+                        $statusClass = 'status-' . $order['status'];
             ?>
             <tr>
-                <td><strong>#<?php echo str_pad($order['order_id'], 6, '0', STR_PAD_LEFT); ?></strong></td>
-                <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
-                <td>
-                    <ul>
+                            <td>
+                                <span class="order-id">#<?php echo str_pad($order['order_id'], 6, '0', STR_PAD_LEFT); ?></span>
+                            </td>
+                            <td>
+                                <span class="customer-name"><?php echo htmlspecialchars($order['customer_name']); ?></span>
+                            </td>
+                            <td>
+                                <ul class="product-list">
                         <?php foreach ($order['items'] as $item): ?>
-                            <li>
+                                        <li class="product-item">
                                 <strong><?php echo htmlspecialchars($item['product_name']); ?></strong>
-                                <small>(x<?php echo (int)$item['quantity']; ?>)</small>  
-                                - $<?php echo number_format((float)$item['item_price'], 2); ?>
+                                            (x<?php echo (int)$item['quantity']; ?>) - ₱<?php echo number_format((float)$item['item_price'], 2); ?>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 </td>
-                <td><strong style="color: #4CAF50;">$<?php echo number_format((float)$order['total_amount'], 2); ?></strong></td>
-                <td>
-                    <span style="
-                        padding: 5px 10px; 
-                        border-radius: 15px; 
-                        font-size: 12px; 
-                        font-weight: bold; 
-                        text-transform: uppercase;
-                        background: <?php 
-                            switch($order['status']) {
-                                case 'pending': echo '#fff3cd; color: #856404;'; break;
-                                case 'confirmed': echo '#d1ecf1; color: #0c5460;'; break;
-                                case 'processing': echo '#cce5ff; color: #004085;'; break;
-                                case 'shipped': echo '#d4edda; color: #155724;'; break;
-                                case 'delivered': echo '#d4edda; color: #155724;'; break;
-                                case 'cancelled': echo '#f8d7da; color: #721c24;'; break;
-                                default: echo '#e2e3e5; color: #383d41;';
-                            }
-                        ?>
-                    ">
+                            <td>
+                                <span class="total-amount">₱<?php echo number_format((float)$order['total_amount'], 2); ?></span>
+                            </td>
+                            <td>
+                                <span class="order-status <?php echo $statusClass; ?>">
                         <?php echo ucfirst($order['status']); ?>
                     </span>
                 </td>
-                <td><?php echo date('M j, Y', strtotime($order['created_at'])); ?><br>
-                    <small style="color: #666;"><?php echo date('g:i A', strtotime($order['created_at'])); ?></small>
+                            <td>
+                                <div class="order-date">
+                                    <?php echo date('M j, Y', strtotime($order['created_at'])); ?><br>
+                                    <?php echo date('g:i A', strtotime($order['created_at'])); ?>
+                                </div>
                 </td>
-                <!-- Replace the entire <td> Action column section in your table with this code -->
-
-<td>
+                            <td class="actions-cell">
     <?php if ($order['status'] === 'pending'): ?>
         <?php if ($withinGracePeriod): ?>
-            <!-- Grace period active - show countdown timer -->
-            <div class="countdown-timer" id="timer-<?php echo $order['order_id']; ?>">
-                🔒 Processing blocked for: <?php echo $remainingTime['minutes']; ?>m <?php echo str_pad($remainingTime['seconds'], 2, '0', STR_PAD_LEFT); ?>s<br>
-                <small>Customer priority cancellation period</small>
+                                        <div class="grace-period-timer" id="timer-<?php echo $order['order_id']; ?>">
+                                            🔒 <?php echo $remainingTime['minutes']; ?>m <?php echo str_pad($remainingTime['seconds'], 2, '0', STR_PAD_LEFT); ?>s
             </div>
             <script>
-                startCountdown(<?php echo $order['order_id']; ?>, <?php echo $remainingTime['total_seconds']; ?>);
+                                            (function() {
+                                                let remaining = <?php echo $remainingTime['total_seconds']; ?>;
+                                                const timer = document.getElementById('timer-<?php echo $order['order_id']; ?>');
+                                                const interval = setInterval(function() {
+                                                    if (remaining <= 0) {
+                                                        clearInterval(interval);
+                                                        location.reload();
+                                                        return;
+                                                    }
+                                                    const m = Math.floor(remaining / 60);
+                                                    const s = remaining % 60;
+                                                    timer.innerHTML = `🔒 ${m}m ${s.toString().padStart(2, '0')}s`;
+                                                    remaining--;
+                                                }, 1000);
+                                            })();
             </script>
         <?php else: ?>
-            <!-- Grace period ended - show action buttons -->
-            <div id="action-buttons-<?php echo $order['order_id']; ?>">
-                <button type="button" class="btn-process-order" onclick="showStatusDropdown(<?php echo $order['order_id']; ?>, 'processing')">
-                    ✅ Process Order
-                </button>
-                <button type="button" class="btn-cancel-order" onclick="showStatusDropdown(<?php echo $order['order_id']; ?>, 'cancelled')">
-                    ❌ Cancel
-                </button>
+                                        <div class="grace-period-timer grace-period-ready">
+                                            Ready
             </div>
-            
-            <div class="countdown-timer ready" style="margin-top: 8px;">
-                ✅ Ready to process - Grace period ended<br>
-                <small>Customer can still cancel until you confirm</small>
-            </div>
-            
-            <!-- Status Update Form (hidden by default) -->
-            <form method="POST" action="" style="margin: 8px 0 0 0; display: none;" id="status-form-<?php echo $order['order_id']; ?>">
+                                        <div class="action-buttons">
+                                            <form method="POST">
+                                                <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
+                                                <input type="hidden" name="status" value="processing">
+                                                <input type="hidden" name="update_status" value="1">
+                                                <button type="submit" class="btn btn-process">Process</button>
+                                            </form>
+                                            <form method="POST">
                 <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
-                <label for="status-<?php echo $order['order_id']; ?>" class="status-form-label">Update status:</label>
-                <select id="status-<?php echo $order['order_id']; ?>" name="status" class="status-select" 
-                        onchange="if(this.value !== '' && !this.querySelector('option[value=\'' + this.value + '\']').disabled) this.form.submit();">
-                    <option value="" selected disabled>Select new status</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+                                                <input type="hidden" name="status" value="cancelled">
                 <input type="hidden" name="update_status" value="1">
+                                                <button type="submit" class="btn btn-cancel">Cancel</button>
             </form>
+                                        </div>
         <?php endif; ?>
-    <?php elseif ($order['status'] === 'processing'): ?>
-        <!-- Processing orders - show dropdown directly -->
-        <form method="POST" action="" style="margin: 0;">
+                                <?php elseif (in_array($order['status'], ['processing', 'shipped'])): ?>
+                                    <form method="POST" class="status-form">
             <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
-            <label for="status-<?php echo $order['order_id']; ?>" class="status-form-label">Update status:</label>
-            <select id="status-<?php echo $order['order_id']; ?>" name="status" class="status-select" 
-                    onchange="if(this.value !== '' && !this.querySelector('option[value=\'' + this.value + '\']').disabled) this.form.submit();">
-                <option value="" selected disabled>Select new status</option>
+                                        <input type="hidden" name="update_status" value="1">
+                                        <label>Update Status:</label>
+                                        <select name="status" class="status-select" onchange="this.form.submit()">
+                                            <option value="">Select...</option>
+                                            <?php if ($order['status'] === 'processing'): ?>
                 <option value="shipped">Shipped</option>
                 <option value="cancelled">Cancelled</option>
-            </select>
-            <input type="hidden" name="update_status" value="1">
-        </form>
     <?php elseif ($order['status'] === 'shipped'): ?>
-        <!-- Shipped orders - show dropdown directly -->
-        <form method="POST" action="" style="margin: 0;">
-            <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
-            <label for="status-<?php echo $order['order_id']; ?>" class="status-form-label">Update status:</label>
-            <select id="status-<?php echo $order['order_id']; ?>" name="status" class="status-select" 
-                    onchange="if(this.value !== '' && !this.querySelector('option[value=\'' + this.value + '\']').disabled) this.form.submit();">
-                <option value="" selected disabled>Select new status</option>
                 <option value="delivered">Delivered</option>
+                                            <?php endif; ?>
             </select>
-            <input type="hidden" name="update_status" value="1">
         </form>
-    <?php elseif (in_array($order['status'], ['delivered', 'cancelled'])): ?>
-        <!-- Terminal states - no actions available -->
-        <span style="color: #999; font-style: italic; font-size: 13px;">No actions available</span>
+                                <?php else: ?>
+                                    <span style="color: #999; font-style: italic; font-size: 12px;">No actions</span>
     <?php endif; ?>
 </td>
-
+                        </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
+        </div>
 <?php endif; ?>
+</div>
+</main>
 
-</body>
-</html>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toast = document.querySelector('.notification-toast');
+    if (toast) {
+        setTimeout(function() {
+            toast.style.transition = 'opacity 0.5s ease';
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 500);
+        }, 4000);
+    }
 
-// Ensure the file ends cleanly
-
-
+    const main = document.querySelector('main');
+    const sidebar = document.getElementById('sellerSidebar');
+    
+    function updateMainMargin() {
+        if (sidebar && sidebar.classList.contains('collapsed')) {
+            main.classList.add('sidebar-collapsed');
+        } else {
+            main.classList.remove('sidebar-collapsed');
+        }
+    }
+    
+    updateMainMargin();
+    
+    const observer = new MutationObserver(updateMainMargin);
+    if (sidebar) {
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
+});
+</script>

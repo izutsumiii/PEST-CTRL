@@ -16,6 +16,14 @@ main{margin-left:240px;}
 .orders-table td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);color:#F9F9F9}
 .orders-table tbody tr{background:rgba(255,255,255,0.03);transition:all .15s ease-in-out}
 .orders-table tbody tr:hover{background:#1a0a2e !important;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+/* Override header styling */
+h1{color:#F9F9F9 !important;font-family:var(--font-primary) !important;font-size:24px !important;font-weight:700 !important;text-align:left !important;margin:0 0 15px 0 !important;padding-left:20px !important;background:none !important;text-shadow:none !important;}
+h2{color:#F9F9F9 !important;font-family:var(--font-primary) !important;font-size:24px !important;font-weight:700 !important;text-align:left !important;margin:0 0 15px 0 !important;padding-left:20px !important;}
+/* Much more aggressive reduction in top spacing for main content */
+main{padding-top:0 !important;margin-top:0px !important;}
+.container{margin-top:-20px !important;padding-top:0 !important;}
+.py-8{padding-top:0 !important;padding-bottom:2rem !important;}
+.mb-8{margin-top:-20px !important;}
 </style>';
 
 requireSeller();
@@ -193,7 +201,7 @@ $periodLabels = [
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             padding: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 45px;
         }
         
         .period-dropdown {
@@ -336,7 +344,6 @@ $periodLabels = [
             <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-xl font-bold mb-2">Select Time Period</h2>
-                    <p class="text-sm text-gray-300 mb-4 md:mb-0">Choose the time range for your analytics data</p>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center gap-4">
                     <select id="timePeriodSelector" class="period-dropdown" onchange="changePeriod(this.value)">

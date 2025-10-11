@@ -27,14 +27,26 @@ require_once '../includes/functions.php';
         /* Sidebar layout */
         /* Sidebar wrapper should not push content below the fold */
         .admin-layout { display: contents; }
+        
+        /* CSS Variables for sidebar */
+        :root {
+            --sidebar-width: 240px;
+            --sidebar-width-collapsed: 70px;
+        }
+        
         .sidebar {
             position: fixed;
-            top: 0; left: 0; bottom: 0;
-            width: 240px;
+            top: 60px; left: 0; bottom: 0;
+            width: var(--sidebar-width);
             background: #130325;
             border-right: 1px solid rgba(255, 215, 54, 0.2);
             padding: 16px 12px;
-            z-index: 1000;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-width-collapsed);
         }
         .sidebar .logo { text-align: center; }
         .sidebar .logo a {
@@ -43,14 +55,387 @@ require_once '../includes/functions.php';
         }
         .sidebar .section-title { color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 14px 8px 6px; }
         .sidebar .nav-links { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-        .sidebar .nav-links a { display: flex; align-items: center; gap: 10px; color: #F9F9F9; text-decoration: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; width: 100%; }
+        .sidebar .nav-links a { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            color: #F9F9F9; 
+            text-decoration: none; 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            width: 100%; 
+            transition: all 0.3s ease; 
+            position: relative;
+        }
         .sidebar .nav-links a:hover { background: rgba(255, 215, 54, 0.1); color: #FFD736; transform: none; }
         .sidebar .nav-links a.active { background: rgba(255, 215, 54, 0.15); color: #FFD736; border: 1px solid rgba(255, 215, 54, 0.25); }
-        /* Hide sidebar user box; we'll show user in main header */
-        .sidebar .user-box { display: none; }
+        
+        /* Tooltip styles for collapsed sidebar */
+        .sidebar.collapsed .nav-links a::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(19, 3, 37, 0.95);
+            color: #F9F9F9;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            margin-left: 15px;
+            border: 1px solid rgba(255, 215, 54, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .nav-links a:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Hamburger menu button - now in logo area */
+        .hamburger-btn {
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            height: 50px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFD736;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .hamburger-btn:hover {
+            background: rgba(255, 215, 54, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .sidebar.collapsed .hamburger-btn {
+            transform: rotate(180deg);
+        }
+        
+        /* Collapsed state styles - improved to prevent glitching */
+        .sidebar.collapsed .hide-on-collapse {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .sidebar.collapsed .nav-links a {
+            justify-content: center;
+            padding: 10px 8px;
+            position: relative;
+        }
+        
+        .sidebar.collapsed .nav-links a span {
+            position: absolute;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+        
+        .sidebar.collapsed .section-title {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+        
+        /* Ensure smooth transitions for all elements */
+        .sidebar .nav-links a span {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .sidebar .section-title {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        /* Sidebar logo */
+        .sidebar .sidebar-logo {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 215, 54, 0.15);
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar .sidebar-logo a {
+            color: #FFD736;
+            text-decoration: none;
+            font-family: 'Libre Barcode 128 Text', monospace;
+            font-size: 24px;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            display: block;
+            position: relative;
+            width: 100%;
+        }
+        
+        .sidebar .sidebar-logo a:hover {
+            color: #F9F9F9;
+        }
+        
+        /* Hide full logo when collapsed, show shortened version */
+        .sidebar .sidebar-logo .full-logo {
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                       visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                       transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sidebar .sidebar-logo .short-logo {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                       visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                       transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 18px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            white-space: nowrap;
+        }
+        
+        .sidebar.collapsed .sidebar-logo .full-logo {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+        }
+        
+        .sidebar.collapsed .sidebar-logo .short-logo {
+            opacity: 1;
+            visibility: visible;
+            position: absolute;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        /* Sidebar user profile section (non-clickable) - shows background when collapsed */
+        .sidebar .user-profile-section {
+            margin-top: auto;
+            padding: 15px 10px;
+            border-top: 1px solid rgba(255, 215, 54, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin: 20px 8px 10px 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .sidebar .user-profile-section .user-profile-info {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .sidebar.collapsed .user-profile-section .user-profile-info {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        
+        .sidebar .user-profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .sidebar .user-name {
+            color: #F9F9F9;
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .sidebar .user-role {
+            color: rgba(249, 249, 249, 0.7);
+            font-size: 12px;
+            margin: 0;
+        }
+        
+        .sidebar .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD736, #e6c230);
+            color: #130325;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        /* Full-width header design - spans over sidebar */
+        .invisible-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(19, 3, 37, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 215, 54, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        /* Left section of header (hamburger menu) */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Hamburger button in header (left side) */
+        .header-hamburger {
+            background: transparent;
+            border: none;
+            color: #FFD736;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-hamburger:hover {
+            background: rgba(255, 215, 54, 0.1);
+            transform: scale(1.1);
+        }
+        
+        /* Right section of header (user profile) */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #F9F9F9;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-logo i {
+            color: #FFD736;
+            font-size: 20px;
+        }
+        
+        .header-logo .barcode-text {
+            font-family: 'Libre Barcode 128 Text', monospace;
+            font-size: 24px;
+            font-weight: 400;
+            color: #FFD736;
+            transition: all 0.3s ease;
+        }
+        
+        /* Logo animation when sidebar toggles */
+        .sidebar.collapsed ~ .invisible-header .header-logo .barcode-text {
+            transform: scale(0.8);
+            opacity: 0.7;
+        }
+        
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #F9F9F9;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-user-info:hover {
+            background: rgba(255, 215, 54, 0.1);
+            color: #FFD736;
+        }
+        
+        .header-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD736, #e6c230);
+            color: #130325;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .header-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #ffffff;
+            min-width: 180px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            z-index: 1000;
+            display: none;
+            margin-top: 8px;
+        }
+        
+        .header-dropdown.show {
+            display: block;
+        }
+        
+        .header-dropdown a {
+            display: block;
+            padding: 12px 16px;
+            color: #2c3e50;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .header-dropdown a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .header-dropdown a i {
+            margin-right: 8px;
+            width: 16px;
+        }
 
         /* Content offset */
-        main { margin-left: 240px; }
+        main { 
+            margin-left: var(--sidebar-width); 
+            margin-top: 60px; /* Account for invisible header */
+            transition: all 0.3s ease;
+        }
 
         /* Main content user bar (upper-left) */
         .main-userbar { 
@@ -502,46 +887,73 @@ require_once '../includes/functions.php';
     </style>
 </head>
 <body class="<?php echo 'page-' . strtolower(pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME)); ?>">
-    <div class="admin-layout">
-        <aside class="sidebar">
-            <div class="logo" style="margin: 4px 6px 10px;">
-                <a href="admin-dashboard.php"><i class="fas fa-bug"></i><span>PEST-CTRL Admin</span></a>
+    <!-- Full-width Header -->
+    <div class="invisible-header">
+        <div class="header-left">
+            <button class="header-hamburger" onclick="toggleAdminSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
             </div>
 
+        <?php if (isLoggedIn() && isAdmin()): ?>
+        <div class="header-right">
+            <div class="header-user">
+                <div class="header-user-info" onclick="toggleAdminHeaderDropdown()">
+                    <div class="header-user-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
+                    <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="header-dropdown" id="adminHeaderDropdown">
+                    <a href="../logout.php"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="admin-layout">
+        <aside class="sidebar" id="adminSidebar">
+            <!-- Logo inside sidebar -->
+            <div class="sidebar-logo">
+                <a href="admin-dashboard.php">
+                    <span class="full-logo barcode-text">PEST-CTRL Admin</span>
+                    <span class="short-logo barcode-text">PC</span>
+                </a>
+            </div>
 
             <?php if (isLoggedIn() && isAdmin()): ?>
-                <div class="section-title">Overview</div>
-                <div class="nav-links">
-                    <a href="admin-dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                </div>
-
-                <div class="section-title">Users</div>
-                <div class="nav-links">
-                    <a href="admin-customers.php"><i class="fas fa-shopping-cart"></i> Customers</a>
-                    <a href="admin-sellers.php"><i class="fas fa-store"></i> Sellers</a>
-                </div>
-
-                <div class="section-title">Catalog</div>
-                <div class="nav-links">
-                    <a href="admin-products.php"><i class="fas fa-boxes"></i> Products</a>
-                    <a href="admin-categories.php"><i class="fas fa-tags"></i> Categories</a>
-                </div>
-
-                <div class="section-title">System</div>
-                <div class="nav-links">
-                    <a href="admin-settings.php"><i class="fas fa-cogs"></i> Settings</a>
-                    <a href="admin-reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
-                </div>
-
-                <div class="user-box">
-                    <div class="user-top">
-                        <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
-                        <div><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                <!-- User profile section without avatar -->
+                <div class="user-profile-section">
+                    <div class="user-profile-info">
+                        <div class="user-name"><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                        <div class="user-role">Administrator</div>
                     </div>
-                    <a href="../logout.php" style="color:#F9F9F9; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
                 </div>
+
+                <div class="section-title hide-on-collapse">Overview</div>
+                <div class="nav-links">
+                    <a href="admin-dashboard.php" data-tooltip="Dashboard"><i class="fas fa-tachometer-alt"></i><span class="hide-on-collapse"> Dashboard</span></a>
+                </div>
+
+                <div class="section-title hide-on-collapse">Users</div>
+                <div class="nav-links">
+                    <a href="admin-customers.php" data-tooltip="Customers"><i class="fas fa-shopping-cart"></i><span class="hide-on-collapse"> Customers</span></a>
+                    <a href="admin-sellers.php" data-tooltip="Sellers"><i class="fas fa-store"></i><span class="hide-on-collapse"> Sellers</span></a>
+                </div>
+
+                <div class="section-title hide-on-collapse">Catalog</div>
+                <div class="nav-links">
+                    <a href="admin-products.php" data-tooltip="Products"><i class="fas fa-boxes"></i><span class="hide-on-collapse"> Products</span></a>
+                    <a href="admin-categories.php" data-tooltip="Categories"><i class="fas fa-tags"></i><span class="hide-on-collapse"> Categories</span></a>
+                </div>
+
+                <div class="section-title hide-on-collapse">System</div>
+                <div class="nav-links">
+                    <a href="admin-settings.php" data-tooltip="Settings"><i class="fas fa-cogs"></i><span class="hide-on-collapse"> Settings</span></a>
+                    <a href="admin-reports.php" data-tooltip="Reports"><i class="fas fa-chart-bar"></i><span class="hide-on-collapse"> Reports</span></a>
+                    </div>
+
+
             <?php else: ?>
                 <div class="nav-links" style="margin-top: 12px;">
                     <a href="../login_admin.php"><i class="fas fa-sign-in-alt"></i> Admin Login</a>
@@ -599,30 +1011,68 @@ require_once '../includes/functions.php';
         });
     </script>
     
-    <?php if (isLoggedIn() && isAdmin()): ?>
-        <div class="main-userbar">
-            <div class="menu" id="mainUserMenu">
-                <div class="user" onclick="toggleUserDropdown()">
-                    <div class="avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
-                    <div><?php echo htmlspecialchars($_SESSION['username']); ?></div>
-                    <i class="fas fa-chevron-down" style="font-size:12px; opacity:.8;"></i>
-                </div>
-                <div class="dropdown" id="mainUserDropdown">
-                    <a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                </div>
-            </div>
-        </div>
         <script>
-            function toggleUserDropdown(){
-                const dd = document.getElementById('mainUserDropdown');
-                dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+            function toggleAdminSidebar() {
+                const sidebar = document.getElementById('adminSidebar');
+                const main = document.querySelector('main');
+                const barcodeText = document.querySelector('.barcode-text');
+                
+                sidebar.classList.toggle('collapsed');
+                
+                // Adjust main content margin
+                if (sidebar.classList.contains('collapsed')) {
+                    main.style.marginLeft = '70px';
+                    // Animate logo when sidebar collapses
+                    if (barcodeText) {
+                        barcodeText.style.transform = 'scale(0.8)';
+                        barcodeText.style.opacity = '0.7';
+                    }
+                } else {
+                    main.style.marginLeft = '240px';
+                    // Animate logo when sidebar expands
+                    if (barcodeText) {
+                        barcodeText.style.transform = 'scale(1)';
+                        barcodeText.style.opacity = '1';
+                    }
+                }
+                
+                // Save state to localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
             }
-            document.addEventListener('click', function(e){
-                if (!document.getElementById('mainUserMenu').contains(e.target)){
-                    document.getElementById('mainUserDropdown').style.display = 'none';
+
+            function toggleAdminHeaderDropdown() {
+                const dropdown = document.getElementById('adminHeaderDropdown');
+                dropdown.classList.toggle('show');
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                const headerUser = document.querySelector('.header-user');
+                const dropdown = document.getElementById('adminHeaderDropdown');
+                
+                if (headerUser && !headerUser.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // On page load, check if sidebar was collapsed
+            document.addEventListener('DOMContentLoaded', () => {
+                const sidebar = document.getElementById('adminSidebar');
+                const main = document.querySelector('main');
+                const barcodeText = document.querySelector('.barcode-text');
+                const isCollapsed = localStorage.getItem('adminSidebarCollapsed') === 'true';
+                
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    main.style.marginLeft = '70px';
+                    // Set logo animation state
+                    if (barcodeText) {
+                        barcodeText.style.transform = 'scale(0.8)';
+                        barcodeText.style.opacity = '0.7';
+                    }
                 }
             });
         </script>
-    <?php endif; ?>
 
     <main>
