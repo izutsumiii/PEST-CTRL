@@ -338,4 +338,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php require_once '../includes/footer.php'; ?>

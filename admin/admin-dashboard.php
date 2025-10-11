@@ -1,115 +1,17 @@
 
 <?php
 require_once 'includes/admin_header.php';
-requireAdmin();
+
+// Simple admin check - ensure user is logged in and is admin
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
+    header('Location: ../login.php');
+    exit();
+}
 
 // Ensure PDO connection is available
 if (!isset($pdo)) {
     require_once '../config/database.php'; // Adjust path if needed
 }
-
-/* ---------------------------
-   CATEGORY MANAGEMENT LOGIC
-----------------------------*/
-
-// Handle category actions (add, edit, delete)
-// if (isset($_POST['add_category'])) {
-//     // Check if name field exists and is not empty
-//     if (!isset($_POST['name']) || empty(trim($_POST['name']))) {
-//         $error = "Category name is required.";
-//     } else {
-//         $name = sanitizeInput($_POST['name']);
-//         $parentId = isset($_POST['parent_id']) && !empty($_POST['parent_id']) ? intval($_POST['parent_id']) : NULL;
-
-//         // Check for duplicate category name (admin categories only)
-//         $stmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE name = ? AND seller_id IS NULL");
-//         $stmt->execute([$name]);
-//         $exists = $stmt->fetchColumn();
-
-//         if ($exists > 0) {
-//             $error = "A category with the name '{$name}' already exists. Please choose a different name.";
-//         } else {
-//             // Insert with parent_id (can be NULL for top-level)
-//             $stmt = $pdo->prepare("INSERT INTO categories (name, parent_id, seller_id) VALUES (?, ?, NULL)");
-//             try {
-//                 $result = $stmt->execute([$name, $parentId]);
-//                 if ($result) {
-//                     if ($parentId) {
-//                         $success = "Subcategory '{$name}' added successfully! All sellers can now use this category.";
-//                     } else {
-//                         $success = "Category '{$name}' added successfully! All sellers can now use this category.";
-//                     }
-//                 } else {
-//                     $error = "Error adding category. Please try again.";
-//                 }
-//             } catch (PDOException $e) {
-//                 $error = "Database error: " . $e->getMessage();
-//             }
-//         }
-//     }
-// }
-// if (isset($_POST['update_category'])) {
-//     $categoryId = intval($_POST['category_id']);
-//     $name = sanitizeInput($_POST['name']);
-//     $parentId = isset($_POST['parent_id']) && !empty($_POST['parent_id']) ? intval($_POST['parent_id']) : NULL;
-    
-//     // Only update admin categories (seller_id IS NULL)
-//     $stmt = $pdo->prepare("SELECT * FROM categories WHERE id = ? AND seller_id IS NULL");
-//     $stmt->execute([$categoryId]);
-//     $category = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-//     if ($category) {
-//         $stmt = $pdo->prepare("UPDATE categories SET name = ?, parent_id = ? WHERE id = ?");
-//         $result = $stmt->execute([$name, $parentId, $categoryId]);
-//         if ($result) {
-//             $success = "Category updated successfully!";
-//         } else {
-//             $error = "Error updating category.";
-//         }
-//     } else {
-//         $error = "Category not found or cannot be edited.";
-//     }
-// }
-
-// if (isset($_GET['delete_category'])) {
-//     $categoryId = intval($_GET['delete_category']);
-    
-//     // Only delete admin categories (seller_id IS NULL)
-//     $stmt = $pdo->prepare("SELECT * FROM categories WHERE id = ? AND seller_id IS NULL");
-//     $stmt->execute([$categoryId]);
-//     $category = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-//     if ($category) {
-//         // Check if category has products
-//         $stmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE category_id = ?");
-//         $stmt->execute([$categoryId]);
-//         $productCount = $stmt->fetchColumn();
-        
-//         if ($productCount > 0) {
-//             $error = "Cannot delete category '{$category['name']}' because it has {$productCount} product(s) associated with it. Please reassign or delete those products first.";
-//         } else {
-//             // Check if category has subcategories
-//             $stmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE parent_id = ?");
-//             $stmt->execute([$categoryId]);
-//             $subcategoryCount = $stmt->fetchColumn();
-            
-//             if ($subcategoryCount > 0) {
-//                 $error = "Cannot delete category '{$category['name']}' because it has {$subcategoryCount} subcategory(ies). Please delete subcategories first.";
-//             } else {
-//                 // Safe to delete
-//                 $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
-//                 $result = $stmt->execute([$categoryId]);
-//                 $success = $result ? "Category deleted successfully!" : "Error deleting category.";
-//             }
-//         }
-//     } else {
-//         // $error = "Category not found or cannot be deleted.";
-//     }
-// }
-
-/* ---------------------------
-   SETTINGS MANAGEMENT LOGIC
-----------------------------*/
 
 if (isset($_POST['update_settings'])) {
     $gracePeriod = intval($_POST['grace_period']);
@@ -178,19 +80,29 @@ $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM products WHERE status = 'pe
 $stmt->execute();
 $pendingProducts = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// // Get all admin categories (seller_id IS NULL)
-// $stmt = $pdo->prepare("SELECT c1.*, c2.name as parent_name 
-//                       FROM categories c1 
-//                       LEFT JOIN categories c2 ON c1.parent_id = c2.id 
-//                       WHERE c1.seller_id IS NULL 
-//                       ORDER BY c1.parent_id, c1.name");
-// $stmt->execute();
-// $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get pending products list for display
+$stmt = $pdo->prepare("SELECT p.*, u.first_name, u.last_name 
+                       FROM products p 
+                       JOIN users u ON p.seller_id = u.id 
+                       WHERE p.status = 'pending' 
+                       ORDER BY p.created_at DESC 
+                       LIMIT 5");
+$stmt->execute();
+$pendingProductsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// // Get parent categories for dropdown (admin categories only)
-// $stmt = $pdo->prepare("SELECT * FROM categories WHERE parent_id IS NULL AND seller_id IS NULL ORDER BY name");
-// $stmt->execute();
-// $parentCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get all admin categories (seller_id IS NULL)
+$stmt = $pdo->prepare("SELECT c1.*, c2.name as parent_name 
+                       FROM categories c1 
+                       LEFT JOIN categories c2 ON c1.parent_id = c2.id 
+                       WHERE c1.seller_id IS NULL 
+                       ORDER BY c1.parent_id, c1.name");
+$stmt->execute();
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get parent categories for dropdown (admin categories only)
+$stmt = $pdo->prepare("SELECT * FROM categories WHERE parent_id IS NULL AND seller_id IS NULL ORDER BY name");
+$stmt->execute();
+$parentCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 
@@ -263,10 +175,6 @@ function addNotificationScript() {
     </form>
   </div>
 </div>
-<div class="page-header">
-    <h1>Admin Dashboard</h1>
-    <p>Manage your PEST-CTRL platform</p>
-</div>
 
 <?php if (isset($success)): ?>
     <div class="success-message"><?php echo $success; ?></div>
@@ -300,6 +208,33 @@ function addNotificationScript() {
     <div class="stat-card">
         <h3>Pending Products</h3>
         <p><?php echo $pendingProducts; ?></p>
+    </div>
+    <div class="stat-card">
+        <h3>Active Sellers</h3>
+        <p><?php 
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM users WHERE user_type = 'seller' AND seller_status = 'approved'");
+        $stmt->execute();
+        $activeSellers = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        echo $activeSellers; 
+        ?></p>
+    </div>
+    <div class="stat-card">
+        <h3>Active Products</h3>
+        <p><?php 
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM products WHERE status = 'active'");
+        $stmt->execute();
+        $activeProducts = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        echo $activeProducts; 
+        ?></p>
+    </div>
+    <div class="stat-card">
+        <h3>Completed Orders</h3>
+        <p><?php 
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders WHERE status = 'delivered'");
+        $stmt->execute();
+        $completedOrders = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        echo $completedOrders; 
+        ?></p>
     </div>
 </div>
 
@@ -395,6 +330,10 @@ function addNotificationScript() {
     <?php if (empty($pendingProductsList)): ?>
         <!-- <p>No pending product approvals.</p> -->
     <?php else: ?>
+        <div class="section">
+            <h2>Pending Product Approvals</h2>
+            <p>Products waiting for admin approval</p>
+        </div>
         <table>
                 <thead>
                     <tr>
@@ -407,9 +346,9 @@ function addNotificationScript() {
                 <tbody>
                     <?php foreach ($pendingProductsList as $product): ?>
                         <tr>
-                            <td><?php echo $product['name']; ?></td>
-                            <td><?php echo $product['seller_name']; ?></td>
-                            <td>₱<?php echo $product['price']; ?></td>
+                            <td><?php echo htmlspecialchars($product['name']); ?></td>
+                            <td><?php echo htmlspecialchars($product['first_name'] . ' ' . $product['last_name']); ?></td>
+                            <td>₱<?php echo number_format($product['price'], 2); ?></td>
                             <td>
                                 <a href="admin-products.php?action=approve&id=<?php echo $product['id']; ?>">Approve</a>
                                 <a href="admin-products.php?action=reject&id=<?php echo $product['id']; ?>">Reject</a>
@@ -483,6 +422,83 @@ function addNotificationScript() {
 </div>
 
 <style>
+  /* Stats Grid Layout - 3x3 */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 20px;
+    margin: 30px 0;
+    padding: 20px;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
+    border: 2px solid #d0e6d0;
+    border-radius: 12px;
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(76,175,80,0.1);
+    transition: all 0.3s ease;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(76,175,80,0.2);
+    border-color: #43a047;
+  }
+
+  .stat-card h3 {
+    color: #2e7d32;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-card p {
+    color: #1b5e20;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .stats {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .stats {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(9, 1fr);
+      gap: 15px;
+    }
+    
+    .stat-card {
+      min-height: 100px;
+      padding: 20px 15px;
+    }
+    
+    .stat-card h3 {
+      font-size: 14px;
+    }
+    
+    .stat-card p {
+      font-size: 24px;
+    }
+  }
+
   /* Category Selection Styling */
 .category-selection-container {
     max-height: 400px;
@@ -753,10 +769,6 @@ function addNotificationScript() {
     .setting-group {
         margin-bottom: 40px;
         padding: 32px 28px;
-    }
-        ?>
-    .setting-group {
-        margin-bottom: 40px;
     }
     .admin-sections table,
 .categories-table {
@@ -1110,7 +1122,7 @@ function addNotificationScript() {
     padding: 12px;
     border-radius: 7px;
     margin-top: 12px;
-    border-left: 5px solideleteCategoryNamed #434ca0ff;
+    border-left: 5px solid #434ca0ff;
 }
 
 .warning-box {
@@ -1161,9 +1173,6 @@ function openDeleteModal(id, name) {
   document.getElementById('delete_category_id').value = id;
   document.getElementById('deleteCategoryName').innerHTML = 'Are you sure you want to delete <strong>' + name + '</strong>?';
   document.getElementById('deleteCategoryModal').style.display = 'flex';
-}
-function closeDeleteModal() {
-  document.getElementById('deleteCategoryModal').style.display = 'none';
 }
 function closeDeleteModal() {
   document.getElementById('deleteCategoryModal').style.display = 'none';
