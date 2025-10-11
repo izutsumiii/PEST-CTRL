@@ -125,6 +125,64 @@ main { background:transparent !important; margin-left: 120px !important; padding
 main.sidebar-collapsed { margin-left: 0px !important; }
 h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-size:24px !important; font-weight:700 !important; text-align:left !important; margin:0 0 15px 0 !important; padding-left:20px !important; background:none !important; text-shadow:none !important; }
 
+/* Action buttons styling */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.action-btn {
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    color: white !important;
+}
+
+.btn-edit {
+    background: #007bff;
+    color: white !important;
+}
+
+.btn-edit:hover {
+    background: #0056b3;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+
+.btn-toggle {
+    background: #28a745;
+    color: white !important;
+}
+
+.btn-toggle:hover {
+    background: #1e7e34;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40,167,69,0.4);
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: white !important;
+}
+
+.btn-delete:hover {
+    background: #c82333;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220,53,69,0.4);
+}
+
 .notification-toast {
     position: fixed;
     top: 100px;
@@ -297,27 +355,52 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
     overflow-y: auto;
     border: 1px solid rgba(255,215,54,0.3);
     border-radius: 8px;
-    padding: 12px;
+    padding: 8px;
     background: rgba(255,255,255,0.05);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Custom scrollbar for category container */
+.category-selection-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.category-selection-container::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+}
+
+.category-selection-container::-webkit-scrollbar-thumb {
+    background: rgba(255,215,54,0.5);
+    border-radius: 3px;
+}
+
+.category-selection-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,215,54,0.7);
 }
 
 .category-group {
     margin-bottom: 8px;
+    border: 1px solid rgba(255,215,54,0.2);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.02);
+    overflow: hidden;
 }
 
 .parent-category {
     background: rgba(255,215,54,0.1);
-    border-left: 3px solid #FFD736;
-    border-radius: 6px;
+    border-bottom: 1px solid rgba(255,215,54,0.2);
 }
 
 .parent-label {
-    padding: 12px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
     transition: background 0.2s ease;
+    min-height: 18px;
+    border-bottom: 1px solid rgba(255,215,54,0.2);
 }
 
 .parent-label:hover {
@@ -327,8 +410,11 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
 .parent-name {
     color: #FFD736;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex: 1;
+    line-height: 1.2;
 }
 
 .toggle-children {
@@ -343,48 +429,60 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
 }
 
 .child-categories {
-    padding: 8px 0 8px 16px;
-    background: rgba(0,0,0,0.2);
+    padding: 0;
+    background: rgba(0,0,0,0.1);
     max-height: 500px;
     overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
+    transition: max-height 0.3s ease;
+    border-top: 1px solid rgba(255,215,54,0.1);
 }
 
 .child-categories.collapsed {
     max-height: 0;
-    padding: 0 0 0 16px;
 }
 
 .child-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    margin: 4px 0;
-    border-radius: 6px;
+    padding: 8px 16px;
+    margin: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: all 0.2s ease;
     cursor: pointer;
+    min-height: 20px;
+    position: relative;
+    width: 100%;
+}
+
+.child-label:last-child {
+    border-bottom: none;
 }
 
 .child-label:hover {
-    background: rgba(255,215,54,0.1);
+    background: rgba(255,215,54,0.08);
 }
 
 .child-label:has(.category-checkbox:checked) {
-    background: rgba(255,215,54,0.15);
-    border-left: 2px solid #FFD736;
+    background: rgba(255,215,54,0.12);
+    border-left: 4px solid #FFD736;
 }
 
 .category-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
     accent-color: #FFD736;
+    margin: 0 0 0 auto;
+    flex-shrink: 0;
+    border-radius: 3px;
 }
 
 .child-name {
     color: #F9F9F9;
     font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin-right: auto;
 }
 
 .form-actions {
@@ -411,7 +509,7 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
 
 .form-actions button[type="submit"] {
     background: #FFD736;
-    color: #130325;
+    color: white;
 }
 
 .form-actions button[type="submit"]:hover:not(:disabled) {
@@ -422,13 +520,14 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
 
 .form-actions button[type="submit"]:disabled {
     background: #6c757d;
+    color: white;
     cursor: not-allowed;
     opacity: 0.6;
 }
 
 .btn-reset {
     background: rgba(255,255,255,0.1);
-    color: #F9F9F9;
+    color: white;
     border: 1px solid rgba(255,255,255,0.3);
 }
 
@@ -621,7 +720,7 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
                                     <div class="category-group">
                                         <div class="parent-category">
                                             <div class="parent-label" onclick="toggleChildren(<?php echo $parent['id']; ?>, event)">
-                                                <span class="parent-name"><?php echo htmlspecialchars($parent['name']); ?></span>
+                                                <span class="parent-name"><?php echo html_entity_decode(htmlspecialchars(preg_replace('/[\x{1F600}-\x{1F64F}]|[\x{1F300}-\x{1F5FF}]|[\x{1F680}-\x{1F6FF}]|[\x{1F1E0}-\x{1F1FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]/u', '', $parent['name'])), ENT_QUOTES, 'UTF-8'); ?></span>
                                                 <?php if ($hasChildren): ?>
                                                     <span class="toggle-children" id="toggle-<?php echo $parent['id']; ?>">
                                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -637,7 +736,7 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
                                                 <?php foreach ($data['children'] as $child): ?>
                                                     <label class="child-label">
                                                         <input type="checkbox" name="category_id[]" value="<?php echo $child['id']; ?>" class="category-checkbox">
-                                                        <span class="child-name"><?php echo htmlspecialchars($child['name']); ?></span>
+                                                        <span class="child-name"><?php echo html_entity_decode(htmlspecialchars(preg_replace('/[\x{1F600}-\x{1F64F}]|[\x{1F300}-\x{1F5FF}]|[\x{1F680}-\x{1F6FF}]|[\x{1F1E0}-\x{1F1FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]/u', '', $child['name'])), ENT_QUOTES, 'UTF-8'); ?></span>
                                                     </label>
                                                 <?php endforeach; ?>
                                             </div>
@@ -718,9 +817,17 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
                                 <td><?php echo $product['stock_quantity']; ?></td>
                                 <td><span class="status-badge status-active">Active</span></td>
                                 <td>
-                                    <a href="edit-product.php?id=<?php echo $product['id']; ?>">Edit</a> |
-                                    <a href="manage-products.php?toggle_status=<?php echo $product['id']; ?>">Deactivate</a> |
-                                    <a href="manage-products.php?delete=<?php echo $product['id']; ?>" onclick="return confirm('Delete this product?')">Delete</a>
+                                    <div class="action-buttons">
+                                        <a href="edit-product.php?id=<?php echo $product['id']; ?>" class="action-btn btn-edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="manage-products.php?toggle_status=<?php echo $product['id']; ?>" class="action-btn btn-toggle">
+                                            <i class="fas fa-pause"></i> Deactivate
+                                        </a>
+                                        <a href="manage-products.php?delete=<?php echo $product['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Delete this product?')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -758,9 +865,17 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
                                 <td><?php echo $product['stock_quantity']; ?></td>
                                 <td><span class="status-badge status-inactive">Inactive</span></td>
                                 <td>
-                                    <a href="edit-product.php?id=<?php echo $product['id']; ?>">Edit</a> |
-                                    <a href="manage-products.php?toggle_status=<?php echo $product['id']; ?>">Activate</a> |
-                                    <a href="manage-products.php?delete=<?php echo $product['id']; ?>" onclick="return confirm('Delete this product?')">Delete</a>
+                                    <div class="action-buttons">
+                                        <a href="edit-product.php?id=<?php echo $product['id']; ?>" class="action-btn btn-edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="manage-products.php?toggle_status=<?php echo $product['id']; ?>" class="action-btn btn-toggle">
+                                            <i class="fas fa-play"></i> Activate
+                                        </a>
+                                        <a href="manage-products.php?delete=<?php echo $product['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Delete this product?')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

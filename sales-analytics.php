@@ -33,9 +33,18 @@ $userId = $_SESSION['user_id'];
 
 // Get selected time period from URL parameter
 $selectedPeriod = isset($_GET['period']) ? sanitizeInput($_GET['period']) : '6months';
+$customStartDate = isset($_GET['start_date']) ? sanitizeInput($_GET['start_date']) : '';
+$customEndDate = isset($_GET['end_date']) ? sanitizeInput($_GET['end_date']) : '';
 
 // Helper function to get date condition based on period
-function getPeriodDateCondition($period) {
+function getPeriodDateCondition($period, $startDate = '', $endDate = '') {
+    // Handle custom date range
+    if ($period === 'custom' && !empty($startDate) && !empty($endDate)) {
+        $startDate = date('Y-m-d', strtotime($startDate));
+        $endDate = date('Y-m-d', strtotime($endDate));
+        return "o.created_at >= '$startDate' AND o.created_at <= '$endDate 23:59:59'";
+    }
+    
     switch($period) {
         case 'weekly':
             return "o.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
@@ -49,7 +58,7 @@ function getPeriodDateCondition($period) {
     }
 }
 
-$dateCondition = getPeriodDateCondition($selectedPeriod);
+$dateCondition = getPeriodDateCondition($selectedPeriod, $customStartDate, $customEndDate);
 // Get top 5 selling products for the selected period
         $stmt = $pdo->prepare("SELECT 
                                   p.name,
@@ -172,7 +181,10 @@ $periodLabels = [
     'weekly' => 'Last 7 Days',
     'monthly' => 'Last Month',
     '6months' => 'Last 6 Months',
-    'yearly' => 'Last Year'
+    'yearly' => 'Last Year',
+    'custom' => !empty($customStartDate) && !empty($customEndDate) ? 
+        date('M j', strtotime($customStartDate)) . ' - ' . date('M j, Y', strtotime($customEndDate)) : 
+        'Custom Range'
 ];
 ?>
 
@@ -181,7 +193,7 @@ $periodLabels = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Analytics Dashboard</title>
+    <title>Sales Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
@@ -205,27 +217,135 @@ $periodLabels = [
         }
         
         .period-dropdown {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #007bff;
-            border-radius: 8px;
             padding: 12px 16px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,215,54,0.3);
+            border-radius: 8px;
+            color: #F9F9F9;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-width: 200px;
+            min-width: 160px;
         }
         
         .period-dropdown:hover {
-            border-color: #0056b3;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+            border-color: #FFD736;
+            box-shadow: 0 0 0 3px rgba(255,215,54,0.2);
         }
         
         .period-dropdown:focus {
             outline: none;
-            border-color: #0056b3;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            border-color: #FFD736;
+            box-shadow: 0 0 0 3px rgba(255,215,54,0.2);
+        }
+        
+        .period-dropdown option {
+            background: #1a0a2e;
+            color: #F9F9F9;
+        }
+        
+        /* Custom Date Range Picker Styles */
+        .custom-date-range {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,215,54,0.3);
+            border-radius: 8px;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .date-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .date-input {
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,215,54,0.3);
+            border-radius: 6px;
+            color: #F9F9F9;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            height: 36px;
+        }
+        
+        /* Custom date input styling */
+        .date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.7;
+        }
+        
+        .date-input::-webkit-datetime-edit-text {
+            color: #FFD736;
+        }
+        
+        .date-input::-webkit-datetime-edit-month-field,
+        .date-input::-webkit-datetime-edit-day-field,
+        .date-input::-webkit-datetime-edit-year-field {
+            color: #F9F9F9;
+        }
+        
+        .date-input:focus {
+            outline: none;
+            border-color: #FFD736;
+            box-shadow: 0 0 0 3px rgba(255,215,54,0.2);
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .date-input::placeholder {
+            color: rgba(249,249,249,0.5);
+        }
+        
+        .date-separator {
+            color: #FFD736;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .apply-date-btn {
+            background: #FFD736;
+            color: #130325;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 36px;
+        }
+        
+        .apply-date-btn:hover {
+            background: #e6c230;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,215,54,0.4);
+        }
+        
+        .apply-date-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .date-inputs {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-input {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .date-separator {
+                text-align: center;
+            }
         }
         
         .period-info {
@@ -336,7 +456,7 @@ $periodLabels = [
 
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-            Sales Analytics Dashboard
+            Sales Analytics
         </h1>
 
         <!-- Time Period Selector -->
@@ -346,6 +466,24 @@ $periodLabels = [
                     <h2 class="text-xl font-bold mb-2">Select Time Period</h2>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <!-- Custom Date Range Picker -->
+                    <div class="custom-date-range">
+                        <div class="date-inputs">
+                            <input type="date" id="startDate" class="date-input" 
+                                   value="<?php echo $customStartDate; ?>" 
+                                   placeholder="Start Date"
+                                   title="Start Date">
+                            <span class="date-separator">to</span>
+                            <input type="date" id="endDate" class="date-input" 
+                                   value="<?php echo $customEndDate; ?>" 
+                                   placeholder="End Date"
+                                   title="End Date">
+                            <button type="button" class="apply-date-btn" onclick="applyCustomDateRange()">
+                                <i class="fas fa-check"></i> Apply
+                            </button>
+                        </div>
+                    </div>
+                    
                     <select id="timePeriodSelector" class="period-dropdown" onchange="changePeriod(this.value)">
                         <option value="weekly" <?php echo $selectedPeriod === 'weekly' ? 'selected' : ''; ?>>Last 7 Days</option>
                         <option value="monthly" <?php echo $selectedPeriod === 'monthly' ? 'selected' : ''; ?>>Last Month</option>
@@ -361,6 +499,8 @@ $periodLabels = [
                 Showing data from 
                 <?php
                 $startDate = '';
+                $endDate = date('M j, Y');
+                
                 switch($selectedPeriod) {
                     case 'weekly':
                         $startDate = date('M j, Y', strtotime('-7 days'));
@@ -374,8 +514,22 @@ $periodLabels = [
                     case 'yearly':
                         $startDate = date('M j, Y', strtotime('-1 year'));
                         break;
+                    case 'custom':
+                        if (!empty($customStartDate) && !empty($customEndDate)) {
+                            $startDate = date('M j, Y', strtotime($customStartDate));
+                            $endDate = date('M j, Y', strtotime($customEndDate));
+                        } else {
+                            $startDate = 'Select dates';
+                            $endDate = '';
+                        }
+                        break;
                 }
-                echo $startDate . ' to ' . date('M j, Y');
+                
+                if ($selectedPeriod === 'custom' && empty($customStartDate)) {
+                    echo 'Select custom date range';
+                } else {
+                    echo $startDate . ($endDate ? ' to ' . $endDate : '');
+                }
                 ?>
             </div>
         </div>
@@ -1014,9 +1168,67 @@ $periodLabels = [
             setTimeout(() => {
                 const currentUrl = new URL(window.location.href);
                 currentUrl.searchParams.set('period', period);
+                // Remove custom date parameters when switching to predefined periods
+                currentUrl.searchParams.delete('start_date');
+                currentUrl.searchParams.delete('end_date');
                 window.location.href = currentUrl.toString();
             }, 500);
         }
+        
+        // Function to apply custom date range
+        function applyCustomDateRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date cannot be later than end date.');
+                return;
+            }
+            
+            document.getElementById('loadingOverlay').classList.add('show');
+            document.body.style.opacity = '0.7';
+            
+            setTimeout(() => {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('period', 'custom');
+                currentUrl.searchParams.set('start_date', startDate);
+                currentUrl.searchParams.set('end_date', endDate);
+                window.location.href = currentUrl.toString();
+            }, 500);
+        }
+        
+        // Function to format date display
+        function formatDateDisplay(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const day = date.getDate();
+            const weekNumber = Math.ceil((date.getDate() - date.getDay() + 1) / 7);
+            return `${day} W${weekNumber}`;
+        }
+        
+        // Update date inputs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            // Set default dates if not already set
+            if (!startDateInput.value) {
+                const today = new Date();
+                const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
+                startDateInput.value = sixMonthsAgo.toISOString().split('T')[0];
+            }
+            
+            if (!endDateInput.value) {
+                const today = new Date();
+                endDateInput.value = today.toISOString().split('T')[0];
+            }
+        });
+        
 
         // Enhanced hover effects for stat cards
         document.querySelectorAll('.stat-card').forEach(card => {

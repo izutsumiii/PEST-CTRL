@@ -990,8 +990,6 @@ h3 {
 
 <body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-white mb-8">Seller Dashboard</h1>
-
                 <!-- Key Performance Indicators -->
          <!-- Replace the KPI section with this corrected version -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

@@ -6,12 +6,46 @@ require 'PHPMailer/PHPMailer/src/Exception.php';
 require 'PHPMailer/PHPMailer/src/PHPMailer.php';
 require 'PHPMailer/PHPMailer/src/SMTP.php';
 
-require_once 'includes/seller_header.php';
 require_once 'config/database.php';
+require_once 'includes/functions.php';
 
 requireSeller();
 
 $userId = $_SESSION['user_id'];
+
+// Handle status update - MUST be before any HTML output
+if (isset($_POST['update_status'])) {
+    $orderId = intval($_POST['order_id']);
+    $newStatus = sanitizeInput($_POST['status']);
+    $cancellationReason = isset($_POST['cancellation_reason']) ? sanitizeInput($_POST['cancellation_reason']) : '';
+    
+    $stmt = $pdo->prepare("SELECT o.* FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE o.id = ? AND p.seller_id = ? GROUP BY o.id");
+    $stmt->execute([$orderId, $userId]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($order) {
+        $currentStatus = $order['status'];
+        $allowedTransitions = getAllowedStatusTransitions($currentStatus);
+        
+        if (!in_array($newStatus, $allowedTransitions)) {
+            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Invalid status transition from ' . ucfirst($currentStatus) . ' to ' . ucfirst($newStatus)];
+        }
+        elseif ($currentStatus === 'pending' && $newStatus === 'processing' && isWithinGracePeriod($order['created_at'], $pdo)) {
+            $remaining = getRemainingGracePeriod($order['created_at'], $pdo);
+            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Order in grace period. Wait ' . $remaining['minutes'] . 'm ' . $remaining['seconds'] . 's'];
+        }
+        else {
+            $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+            $result = $stmt->execute([$newStatus, $orderId]);
+            
+            if ($result) {
+                $_SESSION['order_message'] = ['type' => 'success', 'text' => 'Order #' . str_pad($orderId, 6, '0', STR_PAD_LEFT) . ' updated to ' . ucfirst($newStatus)];
+            }
+        }
+    }
+    header("Location: view-orders.php");
+    exit();
+}
 
 function getGracePeriodMinutes($pdo) {
     try {
@@ -116,39 +150,6 @@ function sendOrderStatusUpdateEmail($customerEmail, $customerName, $orderId, $ne
     }
 }
 
-// Handle status update
-if (isset($_POST['update_status'])) {
-    $orderId = intval($_POST['order_id']);
-    $newStatus = sanitizeInput($_POST['status']);
-    $cancellationReason = isset($_POST['cancellation_reason']) ? sanitizeInput($_POST['cancellation_reason']) : '';
-    
-    $stmt = $pdo->prepare("SELECT o.* FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE o.id = ? AND p.seller_id = ? GROUP BY o.id");
-    $stmt->execute([$orderId, $userId]);
-    $order = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($order) {
-        $currentStatus = $order['status'];
-        $allowedTransitions = getAllowedStatusTransitions($currentStatus);
-        
-        if (!in_array($newStatus, $allowedTransitions)) {
-            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Invalid status transition from ' . ucfirst($currentStatus) . ' to ' . ucfirst($newStatus)];
-        }
-        elseif ($currentStatus === 'pending' && $newStatus === 'processing' && isWithinGracePeriod($order['created_at'], $pdo)) {
-            $remaining = getRemainingGracePeriod($order['created_at'], $pdo);
-            $_SESSION['order_message'] = ['type' => 'error', 'text' => 'Order in grace period. Wait ' . $remaining['minutes'] . 'm ' . $remaining['seconds'] . 's'];
-        }
-        else {
-            $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
-            $result = $stmt->execute([$newStatus, $orderId]);
-            
-            if ($result) {
-                $_SESSION['order_message'] = ['type' => 'success', 'text' => 'Order #' . str_pad($orderId, 6, '0', STR_PAD_LEFT) . ' updated to ' . ucfirst($newStatus)];
-            }
-        }
-    }
-    header("Location: seller-orders.php");
-    exit();
-}
 
 $stmt = $pdo->prepare("SELECT o.*, oi.quantity, oi.price as item_price, p.name as product_name, p.id as product_id, COALESCE(u.username, 'Guest Customer') as customer_name FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id LEFT JOIN users u ON o.user_id = u.id WHERE p.seller_id = ? ORDER BY o.created_at DESC");
 $stmt->execute([$userId]);
@@ -175,6 +176,9 @@ foreach ($orders as $order) {
         'item_price' => $order['item_price']
     ];
 }
+
+// Include header after form processing is complete
+require_once 'includes/seller_header.php';
 ?>
 
 <style>
@@ -346,9 +350,9 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
 }
 
 .grace-period-ready {
-    background: rgba(40,167,69,0.15);
+    background: #28a745;
     border-color: #28a745;
-    color: #28a745;
+    color: #ffffff;
 }
 
 .action-buttons {
@@ -357,7 +361,7 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
     gap: 8px;
 }
 
-.btn {
+.action-btn {
     width: 100%;
     padding: 10px 16px;
     border: none;
@@ -367,22 +371,24 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-process {
-    background: #FFD736;
-    color: #130325;
+    background: #007bff;
+    color: white;
 }
 
 .btn-process:hover {
-    background: #e6c230;
+    background: #0056b3;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255,215,54,0.4);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
 }
 
 .btn-cancel {
     background: #dc3545;
-    color: #ffffff;
+    color: white;
 }
 
 .btn-cancel:hover {
@@ -547,13 +553,17 @@ h1 { color:#F9F9F9 !important; font-family:var(--font-primary) !important; font-
                                                 <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
                                                 <input type="hidden" name="status" value="processing">
                                                 <input type="hidden" name="update_status" value="1">
-                                                <button type="submit" class="btn btn-process">Process</button>
+                                                <button type="submit" class="action-btn btn-process">
+                                                    <i class="fas fa-cog"></i> Process
+                                                </button>
                                             </form>
                                             <form method="POST">
                 <input type="hidden" name="order_id" value="<?php echo $order['order_id']; ?>">
                                                 <input type="hidden" name="status" value="cancelled">
                 <input type="hidden" name="update_status" value="1">
-                                                <button type="submit" class="btn btn-cancel">Cancel</button>
+                                                <button type="submit" class="action-btn btn-cancel">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
             </form>
                                         </div>
         <?php endif; ?>
