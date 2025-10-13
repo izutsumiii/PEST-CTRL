@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitions revision="1.1" schemaVersion="1.0">
+	<policyNamespaces>
+		<target prefix="Cursor" namespace="Microsoft.Policies.Cursor" />
+	</policyNamespaces>
+	<resources minRequiredRevision="1.0" />
+	<supportedOn>
+		<definitions>
+			<definition name="Supported_1_67" displayName="$(string.Supported_1_67)" />
+			<definition name="Supported_1_96" displayName="$(string.Supported_1_96)" />
+			<definition name="Supported_1_99" displayName="$(string.Supported_1_99)" />
+		</definitions>
+	</supportedOn>
+	<categories>
+		<category displayName="$(string.Application)" name="Application" />
+		<category displayName="$(string.Category_cursorAuthConfigurationTitle)" name="cursorAuthConfigurationTitle"><parentCategory ref="Application" /></category>
+		<category displayName="$(string.Category_securityConfigurationTitle)" name="securityConfigurationTitle"><parentCategory ref="Application" /></category>
+		<category displayName="$(string.Category_updateConfigurationTitle)" name="updateConfigurationTitle"><parentCategory ref="Application" /></category>
+		<category displayName="$(string.Category_extensionsConfigurationTitle)" name="extensionsConfigurationTitle"><parentCategory ref="Application" /></category>
+	</categories>
+	<policies>
+		<policy name="AllowedTeamId" class="Both" displayName="$(string.AllowedTeamId)" explainText="$(string.AllowedTeamId_cursor_allowedTeamId)" key="Software\Policies\Microsoft\Cursor" presentation="$(presentation.AllowedTeamId)">
+			<parentCategory ref="cursorAuthConfigurationTitle" />
+			<supportedOn ref="Supported_1_99" />
+			<elements>
+		<text id="AllowedTeamId" valueName="AllowedTeamId" required="true" />
+			</elements>
+		</policy>
+		<policy name="WorkspaceTrustEnabled" class="Both" displayName="$(string.WorkspaceTrustEnabled)" explainText="$(string.WorkspaceTrustEnabled_workspace_trust_description)" key="Software\Policies\Microsoft\Cursor" presentation="$(presentation.WorkspaceTrustEnabled)">
+			<parentCategory ref="securityConfigurationTitle" />
+			<supportedOn ref="Supported_1_99" />
+			<elements>
+		<boolean id="WorkspaceTrustEnabled" valueName="WorkspaceTrustEnabled">
+			<trueValue><decimal value="1" /></trueValue><falseValue><decimal value="0" /></falseValue>
+		</boolean>
+			</elements>
+		</policy>
+		<policy name="UpdateMode" class="Both" displayName="$(string.UpdateMode)" explainText="$(string.UpdateMode_updateMode)" key="Software\Policies\Microsoft\Cursor" presentation="$(presentation.UpdateMode)">
+			<parentCategory ref="updateConfigurationTitle" />
+			<supportedOn ref="Supported_1_67" />
+			<elements>
+		<enum id="UpdateMode" valueName="UpdateMode">
+			<item displayName="$(string.UpdateMode_none)"><value><string>none</string></value></item>
+			<item displayName="$(string.UpdateMode_manual)"><value><string>manual</string></value></item>
+			<item displayName="$(string.UpdateMode_start)"><value><string>start</string></value></item>
+			<item displayName="$(string.UpdateMode_default)"><value><string>default</string></value></item>
+		</enum>
+			</elements>
+		</policy>
+		<policy name="ExtensionGalleryServiceUrl" class="Both" displayName="$(string.ExtensionGalleryServiceUrl)" explainText="$(string.ExtensionGalleryServiceUrl_extensions_gallery_serviceUrl)" key="Software\Policies\Microsoft\Cursor" presentation="$(presentation.ExtensionGalleryServiceUrl)">
+			<parentCategory ref="extensionsConfigurationTitle" />
+			<supportedOn ref="Supported_1_99" />
+			<elements>
+		<text id="ExtensionGalleryServiceUrl" valueName="ExtensionGalleryServiceUrl" required="true" />
+			</elements>
+		</policy>
+		<policy name="AllowedExtensions" class="Both" displayName="$(string.AllowedExtensions)" explainText="$(string.AllowedExtensions_extensions_allowed_policy)" key="Software\Policies\Microsoft\Cursor" presentation="$(presentation.AllowedExtensions)">
+			<parentCategory ref="extensionsConfigurationTitle" />
+			<supportedOn ref="Supported_1_96" />
+			<elements>
+		<multiText id="AllowedExtensions" valueName="AllowedExtensions" required="true" />
+			</elements>
+		</policy>
+	</policies>
+</policyDefinitions>

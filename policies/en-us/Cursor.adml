@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources revision="1.0" schemaVersion="1.0">
+	<displayName />
+	<description />
+	<resources>
+		<stringTable>
+			<string id="Application">Cursor</string>
+			<string id="Supported_1_67">Cursor &gt;= 1.67</string>
+			<string id="Supported_1_96">Cursor &gt;= 1.96</string>
+			<string id="Supported_1_99">Cursor &gt;= 1.99</string>
+			<string id="Category_cursorAuthConfigurationTitle">Cursor Auth</string>
+			<string id="Category_securityConfigurationTitle">Security</string>
+			<string id="Category_updateConfigurationTitle">Update</string>
+			<string id="Category_extensionsConfigurationTitle">Extensions</string>
+			<string id="AllowedTeamId">AllowedTeamId</string>
+			<string id="AllowedTeamId_cursor_allowedTeamId">Specify the required team id that a user must belong to in order to use Cursor. If set and the signed-in user is not part of the team, Cursor will automatically sign the user out.</string>
+			<string id="WorkspaceTrustEnabled">WorkspaceTrustEnabled</string>
+			<string id="WorkspaceTrustEnabled_workspace_trust_description">Controls whether or not Workspace Trust is enabled within VS Code.</string>
+			<string id="UpdateMode">UpdateMode</string>
+			<string id="UpdateMode_updateMode">Configure whether you receive automatic updates. Requires a restart after change. The updates are fetched from a Microsoft online service.</string>
+			<string id="UpdateMode_none">Disable updates.</string>
+			<string id="UpdateMode_manual">Disable automatic background update checks. Updates will be available if you manually check for updates.</string>
+			<string id="UpdateMode_start">Check for updates only on startup. Disable automatic background update checks.</string>
+			<string id="UpdateMode_default">Enable automatic update checks. Code will check for updates automatically and periodically.</string>
+			<string id="ExtensionGalleryServiceUrl">ExtensionGalleryServiceUrl</string>
+			<string id="ExtensionGalleryServiceUrl_extensions_gallery_serviceUrl">Configure the Marketplace service URL to connect to</string>
+			<string id="AllowedExtensions">AllowedExtensions</string>
+			<string id="AllowedExtensions_extensions_allowed_policy">Specify a list of extensions that are allowed to use. This helps maintain a secure and consistent development environment by restricting the use of unauthorized extensions. More information: https://code.visualstudio.com/docs/setup/enterprise#_configure-allowed-extensions</string>
+		</stringTable>
+		<presentationTable>
+			<presentation id="AllowedTeamId"><textBox refId="AllowedTeamId"><label>AllowedTeamId:</label></textBox></presentation>
+			<presentation id="WorkspaceTrustEnabled"><checkBox refId="WorkspaceTrustEnabled">WorkspaceTrustEnabled</checkBox></presentation>
+			<presentation id="UpdateMode"><dropdownList refId="UpdateMode" /></presentation>
+			<presentation id="ExtensionGalleryServiceUrl"><textBox refId="ExtensionGalleryServiceUrl"><label>ExtensionGalleryServiceUrl:</label></textBox></presentation>
+			<presentation id="AllowedExtensions"><multiTextBox refId="AllowedExtensions" /></presentation>
+		</presentationTable>
+	</resources>
+</policyDefinitionResources>
