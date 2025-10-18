@@ -342,6 +342,27 @@ function checkDatabaseStructure($pdo) {
 }
 
 
+// Function to get orders with return requests
+function getOrdersWithReturns() {
+    global $pdo, $userId;
+    
+    $stmt = $pdo->prepare("SELECT o.*, 
+                          rr.id as return_id,
+                          rr.reason as return_reason,
+                          rr.status as return_status,
+                          rr.created_at as return_date,
+                          GROUP_CONCAT(CONCAT(p.name, ' (x', oi.quantity, ')') SEPARATOR ', ') as items
+                          FROM orders o
+                          INNER JOIN return_requests rr ON o.id = rr.order_id
+                          LEFT JOIN order_items oi ON o.id = oi.order_id
+                          LEFT JOIN products p ON oi.product_id = p.id
+                          WHERE o.user_id = ?
+                          GROUP BY o.id, rr.id
+                          ORDER BY rr.created_at DESC");
+    $stmt->execute([$userId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // Get orders by status - NOW THESE FUNCTIONS WILL WORK
 $pendingOrders = getOrdersByStatus('pending');
 $processingOrders = getOrdersByStatus('processing');
@@ -349,7 +370,7 @@ $shippedOrders = getOrdersByStatus('shipped');
 $cancelledOrders = getOrdersByStatus('cancelled');
 $orders = getUserOrders();
 $deliveredOrders = getDeliveredOrders();
-
+$returnRefundOrders = getOrdersWithReturns();
 // Get user info
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$userId]);
@@ -364,6 +385,20 @@ if (!$user) {
 ?>
 
 <style>
+    .order-status.pending_review {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.order-status.approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.order-status.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
 /* Dashboard Styles */
 * {
     margin: 0;
@@ -1141,8 +1176,375 @@ h1 {
 .delivered-products {
     animation-delay: 0.4s;
 }
-</style>
 
+
+
+/* Return Request Button */
+.btn-return {
+    background: #ff9800 !important;
+    color: white !important;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-return:hover {
+    background: #fb8c00 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
+}
+
+/* Return Modal */
+.return-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(5px);
+    overflow-y: auto;
+}
+
+.return-modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.photo-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 20px 0;
+}
+
+.photo-upload-area:hover {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.photo-upload-area i {
+    font-size: 3rem;
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.photo-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.photo-preview-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+}
+
+.photo-preview-item img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.remove-photo {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.remove-photo:hover {
+    background: #c82333;
+}
+
+.return-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 5px;
+}
+
+.return-warning strong {
+    color: #856404;
+}
+
+/* Issue Selection Cards */
+.issue-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.issue-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+.issue-card:hover {
+    border-color: #007bff;
+    background: #e7f3ff;
+    transform: translateX(5px);
+}
+
+.issue-card input[type="radio"] {
+    display: none;
+}
+
+.issue-card input[type="radio"]:checked + .issue-label {
+    color: #007bff;
+}
+
+.issue-card input[type="radio"]:checked ~ .issue-label {
+    color: #007bff;
+}
+
+.issue-card:has(input[type="radio"]:checked) {
+    border-color: #007bff;
+    background: #e7f3ff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
+.issue-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.issue-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.issue-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Sub-options styling */
+.sub-options {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px dashed #dee2e6;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.radio-option {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.radio-option:hover {
+    background: rgba(0, 123, 255, 0.05);
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #007bff;
+}
+
+.radio-option label {
+    cursor: pointer;
+    color: #495057;
+    font-size: 0.95rem;
+    margin: 0;
+    flex: 1;
+}
+
+.radio-option input[type="radio"]:checked + label {
+    color: #007bff;
+    font-weight: 600;
+}
+
+/* Responsive design for issue cards */
+@media (max-width: 768px) {
+    .issue-icon {
+        font-size: 2rem;
+    }
+    
+    .issue-title {
+        font-size: 1rem;
+    }
+    
+    .issue-card {
+        padding: 12px;
+    }
+}
+/* Issue Selection Cards */
+.issue-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.issue-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+.issue-card:hover {
+    border-color: #007bff;
+    background: #e7f3ff;
+    transform: translateX(5px);
+}
+
+.issue-card input[type="radio"] {
+    display: none;
+}
+
+.issue-card input[type="radio"]:checked + .issue-label {
+    color: #007bff;
+}
+
+.issue-card input[type="radio"]:checked ~ .issue-label {
+    color: #007bff;
+}
+
+.issue-card:has(input[type="radio"]:checked) {
+    border-color: #007bff;
+    background: #e7f3ff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
+.issue-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.issue-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.issue-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Sub-options styling */
+.sub-options {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px dashed #dee2e6;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.radio-option {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.radio-option:hover {
+    background: rgba(0, 123, 255, 0.05);
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #007bff;
+}
+
+.radio-option label {
+    cursor: pointer;
+    color: #495057;
+    font-size: 0.95rem;
+    margin: 0;
+    flex: 1;
+}
+
+.radio-option input[type="radio"]:checked + label {
+    color: #007bff;
+    font-weight: 600;
+}
+
+/* Responsive design for issue cards */
+@media (max-width: 768px) {
+    .issue-icon {
+        font-size: 2rem;
+    }
+    
+    .issue-title {
+        font-size: 1rem;
+    }
+    
+    .issue-card {
+        padding: 12px;
+    }
+}
+</style>
 <script>
 // Auto-dismiss alert notifications after 4 seconds
 document.addEventListener('DOMContentLoaded', function() {
@@ -1150,25 +1552,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const alerts = document.querySelectorAll('.alert, .alert-success, .alert-error, .alert-warning, .success-message, .error-message');
     
     alerts.forEach(function(alert) {
-        // Add fade-out animation styles if not already present
         if (!alert.style.transition) {
             alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
         }
         
-        // Set timer to fade out after 4 seconds
         setTimeout(function() {
-            // Add fade-out effect
             alert.style.opacity = '0';
             alert.style.transform = 'translateY(-20px)';
             
-            // Remove element from DOM after animation completes
             setTimeout(function() {
                 alert.remove();
-            }, 500); // Wait for fade animation to complete
-        }, 4000); // 4 seconds delay
+            }, 500);
+        }, 4000);
     });
     
-    // Optional: Add click-to-dismiss functionality
     alerts.forEach(function(alert) {
         alert.style.cursor = 'pointer';
         alert.title = 'Click to dismiss';
@@ -1183,15 +1580,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-    function confirmCancelOrder(orderId) {
-    // Minimal confirmation for production
-    openConfirm('Are you sure you want to cancel order #' + orderId + '?', function(){
-        const form = document.querySelector('form[action*="cancel_order"][data-order-id="' + orderId + '"]');
-        if (form) form.submit();
-    });
-    return false;
-}
-// Order Management JavaScript (FIXED VERSION)
+
+// Order Management JavaScript
 class OrderManager {
     constructor() {
         this.init();
@@ -1200,36 +1590,39 @@ class OrderManager {
     init() {
         this.setupEventListeners();
     }
+
     setupEventListeners() {
-        // Cancel order modal events - FIXED
+        const self = this;
+        
+        // Handle all button clicks
         document.addEventListener('click', (e) => {
-            // Handle cancel button clicks from both order history and status grid
-            if (e.target.classList.contains('cancel-order-btn') || e.target.classList.contains('btn-cancel-modal')) {
+            // Handle Cancel Order button
+            if (e.target.classList.contains('btn-cancel-modal')) {
                 e.preventDefault();
-                const orderId = e.target.dataset.orderId || e.target.getAttribute('data-order-id');
-                const orderNumber = e.target.dataset.orderNumber || e.target.getAttribute('data-order-number');
-                this.showCancelModal(orderId, orderNumber);
+                const orderId = e.target.dataset.orderId;
+                const orderNumber = e.target.dataset.orderNumber;
+                self.showCancelModal(orderId, orderNumber);
+                return;
             }
 
-            // Handle close modal clicks
-            if (e.target.classList.contains('close-modal') || e.target === document.getElementById('cancelModal')) {
-                this.closeCancelModal();
-            }
-
-            // Handle direct cancel form submissions from status grid
-            if (e.target.type === 'submit' && e.target.textContent.includes('Cancel Order')) {
-                openConfirm('Are you sure you want to cancel this order? This action cannot be undone.', function(){
-                    // proceed
-                    e.target.closest('form')?.submit();
-                });
+            // Handle close cancel modal
+            if (e.target.classList.contains('close-modal')) {
                 e.preventDefault();
+                self.closeCancelModal();
+                return;
+            }
+            
+            // Close modal if clicking outside
+            if (e.target.id === 'cancelModal') {
+                self.closeCancelModal();
+                return;
             }
         });
 
         // Keyboard events
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                this.closeCancelModal();
+                self.closeCancelModal();
             }
         });
     }
@@ -1256,14 +1649,291 @@ class OrderManager {
     }
 }
 
-// Initialize when DOM is ready
+// Return Manager
+class ReturnManager {
+    constructor() {
+        this.maxPhotos = 4;
+        this.selectedFiles = [];
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const self = this;
+        
+        // Handle return button clicks
+        document.addEventListener('click', (e) => {
+            // Handle Return Request button
+            if (e.target.classList.contains('btn-return')) {
+                e.preventDefault();
+                const orderId = e.target.dataset.orderId;
+                const orderNumber = e.target.dataset.orderNumber;
+                console.log('Return button clicked:', orderId, orderNumber);
+                self.showReturnModal(orderId, orderNumber);
+                return;
+            }
+
+            // Handle close return modal
+            if (e.target.classList.contains('close-return-modal')) {
+                e.preventDefault();
+                self.closeReturnModal();
+                return;
+            }
+
+            // Close modal if clicking outside
+            if (e.target.id === 'returnModal') {
+                self.closeReturnModal();
+                return;
+            }
+
+            // Remove photo
+            if (e.target.classList.contains('remove-photo')) {
+                const index = parseInt(e.target.dataset.index);
+                self.removePhoto(index);
+                return;
+            }
+        });
+
+        // Handle main issue selection
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'main_issue') {
+                self.handleMainIssueChange(e.target.value);
+            }
+        });
+
+        // File input change
+        const fileInput = document.getElementById('returnPhotos');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                self.handleFileSelect(e.target.files);
+            });
+        }
+
+        // Drag and drop
+        const uploadArea = document.getElementById('photoUploadArea');
+        if (uploadArea) {
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#007bff';
+                uploadArea.style.background = '#e7f3ff';
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.background = '#f8f9fa';
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.background = '#f8f9fa';
+                self.handleFileSelect(e.dataTransfer.files);
+            });
+        }
+
+        // Form submission validation
+        const returnForm = document.getElementById('returnForm');
+        if (returnForm) {
+            returnForm.addEventListener('submit', (e) => {
+                if (!self.validateForm()) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // Keyboard events
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                self.closeReturnModal();
+            }
+        });
+    }
+
+    handleMainIssueChange(mainIssue) {
+        const damagedSuboptions = document.getElementById('damaged_suboptions');
+        const notReceivedSuboptions = document.getElementById('not_received_suboptions');
+        const subIssueRadios = document.querySelectorAll('input[name="sub_issue"]');
+
+        subIssueRadios.forEach(radio => {
+            radio.checked = false;
+            radio.required = false;
+        });
+
+        if (damagedSuboptions) damagedSuboptions.style.display = 'none';
+        if (notReceivedSuboptions) notReceivedSuboptions.style.display = 'none';
+
+        if (mainIssue === 'damaged') {
+            if (damagedSuboptions) damagedSuboptions.style.display = 'block';
+            const damagedRadios = document.querySelectorAll('#damaged_suboptions input[type="radio"]');
+            damagedRadios.forEach(radio => radio.required = false);
+        } else if (mainIssue === 'not_received') {
+            if (notReceivedSuboptions) notReceivedSuboptions.style.display = 'block';
+            const notReceivedRadios = document.querySelectorAll('#not_received_suboptions input[type="radio"]');
+            notReceivedRadios.forEach(radio => radio.required = false);
+        }
+    }
+
+    validateForm() {
+        const mainIssueSelected = document.querySelector('input[name="main_issue"]:checked');
+        
+        if (!mainIssueSelected) {
+            alert('Please select what happened to your order');
+            return false;
+        }
+
+        const mainIssue = mainIssueSelected.value;
+        const subIssueSelected = document.querySelector('input[name="sub_issue"]:checked');
+
+        if ((mainIssue === 'damaged' || mainIssue === 'not_received') && !subIssueSelected) {
+            alert('Please select the specific issue from the options below');
+            return false;
+        }
+
+        const reason = document.getElementById('returnReason');
+        if (!reason || !reason.value.trim()) {
+            alert('Please provide details about the issue');
+            return false;
+        }
+
+        const fileInput = document.getElementById('returnPhotos');
+        const fileCount = fileInput.files.length;
+        if (fileCount !== 4) {
+            alert(`Please upload exactly 4 photos (found ${fileCount})`);
+            return false;
+        }
+
+        return true;
+    }
+
+    showReturnModal(orderId, orderNumber) {
+        console.log('showReturnModal called with:', orderId, orderNumber);
+        const modal = document.getElementById('returnModal');
+        const orderIdInput = document.getElementById('returnOrderId');
+        const orderNumberSpan = document.getElementById('returnOrderNumber');
+        
+        if (modal && orderIdInput && orderNumberSpan) {
+            orderIdInput.value = orderId;
+            orderNumberSpan.textContent = orderNumber;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            this.selectedFiles = [];
+            this.updatePhotoPreview();
+            
+            const returnForm = document.getElementById('returnForm');
+            if (returnForm) returnForm.reset();
+            
+            const damagedSuboptions = document.getElementById('damaged_suboptions');
+            const notReceivedSuboptions = document.getElementById('not_received_suboptions');
+            if (damagedSuboptions) damagedSuboptions.style.display = 'none';
+            if (notReceivedSuboptions) notReceivedSuboptions.style.display = 'none';
+            
+            console.log('Modal should be visible now');
+        } else {
+            console.error('Modal elements not found:', {modal, orderIdInput, orderNumberSpan});
+        }
+    }
+
+    closeReturnModal() {
+        const modal = document.getElementById('returnModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            this.selectedFiles = [];
+            this.updatePhotoPreview();
+            
+            const returnForm = document.getElementById('returnForm');
+            if (returnForm) returnForm.reset();
+            
+            const damagedSuboptions = document.getElementById('damaged_suboptions');
+            const notReceivedSuboptions = document.getElementById('not_received_suboptions');
+            if (damagedSuboptions) damagedSuboptions.style.display = 'none';
+            if (notReceivedSuboptions) notReceivedSuboptions.style.display = 'none';
+        }
+    }
+
+    handleFileSelect(files) {
+        const fileArray = Array.from(files);
+        
+        for (let file of fileArray) {
+            if (this.selectedFiles.length >= this.maxPhotos) {
+                alert(`Maximum ${this.maxPhotos} photos allowed`);
+                break;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please select only image files');
+                continue;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                continue;
+            }
+
+            this.selectedFiles.push(file);
+        }
+
+        this.updatePhotoPreview();
+    }
+
+    removePhoto(index) {
+        this.selectedFiles.splice(index, 1);
+        this.updatePhotoPreview();
+    }
+
+    updatePhotoPreview() {
+        const container = document.getElementById('photoPreviewContainer');
+        const fileInput = document.getElementById('returnPhotos');
+        
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        this.selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'photo-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview ${index + 1}">
+                    <button type="button" class="remove-photo" data-index="${index}">&times;</button>
+                `;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const dataTransfer = new DataTransfer();
+        this.selectedFiles.forEach(file => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+    }
+}
+
+// Initialize both managers when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing managers...');
     new OrderManager();
+    new ReturnManager();
+    console.log('Managers initialized');
 });
 </script>
 
 <h1 class="page-title">My Orders</h1>
-
+<!-- Display return success message if exists -->
+<?php if (isset($_SESSION['return_success_message'])): ?>
+    <div class="alert alert-success">
+        <strong>✓ Return Request Submitted!</strong><br>
+        <?php echo $_SESSION['return_success_message']; ?>
+    </div>
+    <?php unset($_SESSION['return_success_message']); ?>
+<?php endif; ?>
 <!-- Display cancel message if exists -->
 <?php if (isset($cancelMessage)): ?>
     <?php echo $cancelMessage; ?>
@@ -1278,30 +1948,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- Status filter tabs -->
     <div class="order-filters" style="margin: 10px 0 20px 0; display:flex; gap:10px; flex-wrap:wrap;">
-        <?php
-        $statuses = ['all' => 'All', 'pending' => 'Pending', 'processing' => 'Processing', 'shipped' => 'Shipped', 'to receive' => 'To Receive', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled'];
-        $activeStatus = isset($_GET['status']) ? strtolower($_GET['status']) : 'all';
-        foreach ($statuses as $key => $label) {
-            $isActive = ($activeStatus === $key) ? ' style="background:#FFD736;color:#130325;border:1px solid #FFD736;"' : '';
-            echo '<a href="user-dashboard.php?status=' . urlencode($key) . '" class="btn filter-tab" style="padding:6px 12px;border:1px solid #ddd;border-radius:16px;color:#130325;background:#fff;text-decoration:none;font-weight:800;text-transform:uppercase;"' . $isActive . '>' . htmlspecialchars($label) . '</a>';
-        }
-        ?>
+       <?php
+            $statuses = [
+                'all' => 'All', 
+                'pending' => 'Pending', 
+                'processing' => 'Processing', 
+                'shipped' => 'Shipped', 
+                'to receive' => 'To Receive', 
+                'delivered' => 'Delivered', 
+                'cancelled' => 'Cancelled',
+                'return_refund' => 'Return/Refund'
+            ];
+            $activeStatus = isset($_GET['status']) ? strtolower($_GET['status']) : 'all';
+            foreach ($statuses as $key => $label) {
+                $isActive = ($activeStatus === $key) ? ' style="background:#FFD736;color:#130325;border:1px solid #FFD736;"' : '';
+                echo '<a href="user-dashboard.php?status=' . urlencode($key) . '" class="btn filter-tab" style="padding:6px 12px;border:1px solid #ddd;border-radius:16px;color:#130325;background:#fff;text-decoration:none;font-weight:800;text-transform:uppercase;"' . $isActive . '>' . htmlspecialchars($label) . '</a>';
+            }
+            ?>
     </div>
     
-    <?php if (empty($orders)): ?>
-        <div class="no-orders">
-            <p>You haven't placed any orders yet.</p>
-            <a href="products.php" class="btn btn-primary">Start Shopping</a>
-        </div>
-    <?php else: ?>
-        <?php
-        $filter = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : 'all';
+<?php if (empty($orders) && $filter === 'all'): ?>
+    <div class="no-orders">
+        <p>You haven't placed any orders yet.</p>
+        <a href="products.php" class="btn btn-primary">Start Shopping</a>
+    </div>
+<?php else: ?>
+    <?php
+    $filter = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : 'all';
+    $hasResults = false;
+    
+    // Handle Return/Refund filter
+    if ($filter === 'return_refund') {
+        if (empty($returnRefundOrders)) {
+            echo '<div class="no-orders"><p>No return/refund requests found.</p></div>';
+        } else {
+            foreach ($returnRefundOrders as $order):
+                $hasResults = true;
+    ?>
+                <div class="order-card" data-order-id="<?php echo $order['id']; ?>">
+                    <div class="order-header">
+                        <div class="order-number">Order #<?php echo str_pad($order['id'], 6, '0', STR_PAD_LEFT); ?></div>
+                        <div class="order-date"><?php echo date('M j, Y g:i A', strtotime($order['created_at'])); ?></div>
+                    </div>
+                    
+                    <div class="order-body">
+                        <div class="order-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Total Amount</div>
+                                <div class="detail-value">$<?php echo number_format((float)$order['total_amount'], 2); ?></div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Order Status</div>
+                                <div class="detail-value">
+                                    <span class="order-status <?php echo strtolower($order['status']); ?>">
+                                        <?php echo ucfirst($order['status']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Return Status</div>
+                                <div class="detail-value">
+                                    <span class="order-status <?php echo strtolower($order['return_status']); ?>">
+                                        <?php echo ucfirst(str_replace('_', ' ', $order['return_status'])); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Return Date</div>
+                                <div class="detail-value"><?php echo date('M j, Y', strtotime($order['return_date'])); ?></div>
+                            </div>
+                        </div>
+                        
+                        <div class="order-items">
+                            <strong>Items:</strong> <?php echo htmlspecialchars($order['items']); ?>
+                        </div>
+                        
+                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 5px;">
+                                <strong style="color: #856404;">Return Reason:</strong>
+                                <?php 
+                                // Remove markdown formatting and clean up the reason text
+                                $cleanReason = $order['return_reason'];
+                                $cleanReason = preg_replace('/\*\*(.*?)\*\*/', '$1', $cleanReason); // Remove ** markers
+                                $cleanReason = str_replace('**', '', $cleanReason); // Remove any remaining **
+                                
+                                // Split by lines and format nicely
+                                $lines = explode("\n", $cleanReason);
+                                echo '<div style="margin-top: 10px;">';
+                                foreach ($lines as $line) {
+                                    $line = trim($line);
+                                    if (empty($line)) continue;
+                                    
+                                    // Check if it's a label line (contains :)
+                                    if (strpos($line, ':') !== false) {
+                                        list($label, $value) = explode(':', $line, 2);
+                                        $label = trim($label);
+                                        $value = trim($value);
+                                        echo '<p style="color: #856404; margin: 8px 0;"><strong>' . htmlspecialchars($label) . ':</strong> ' . htmlspecialchars($value) . '</p>';
+                                    } else {
+                                        echo '<p style="color: #856404; margin: 8px 0;">' . htmlspecialchars($line) . '</p>';
+                                    }
+                                }
+                                echo '</div>';
+                                ?>
+                            </div>
+                        
+                        <div class="order-actions">
+                            <a href="order-confirmation.php?id=<?php echo $order['id']; ?>" class="btn btn-primary">View Order Details</a>
+                            <a href="view-return-request.php?id=<?php echo $order['return_id']; ?>" class="btn" style="background: #ff9800; color: white;">View Return Request</a>
+                        </div>
+                    </div>
+                </div>
+    <?php
+            endforeach;
+        }
+    } else {
+        // Original order filtering logic
         foreach ($orders as $order):
             $orderStatusKey = strtolower($order['status']);
             if ($filter !== 'all' && $filter !== $orderStatusKey) {
                 continue;
             }
-        ?>
+            $hasResults = true;
+    ?>
             <div class="order-card" data-order-id="<?php echo $order['id']; ?>">
                 <div class="order-header">
                     <div class="order-number">Order #<?php echo str_pad($order['id'], 6, '0', STR_PAD_LEFT); ?></div>
@@ -1361,8 +2129,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="order-actions">
                         <a href="order-confirmation.php?id=<?php echo $order['id']; ?>" class="btn btn-primary">View Details</a>
                         
-                        <?php if ($order['status'] === 'delivered'): ?>
-                            <span class="btn" style="background: #28a745; color: white; cursor: default;">Order Delivered</span>
+                        <?php 
+                        // Check if order already has a return request
+                        $stmt = $pdo->prepare("SELECT id FROM return_requests WHERE order_id = ? LIMIT 1");
+                        $stmt->execute([$order['id']]);
+                        $hasReturnRequest = $stmt->fetchColumn();
+                        
+                        if ($order['status'] === 'delivered'): 
+                            if ($hasReturnRequest): ?>
+                                <a href="user-dashboard.php?status=return_refund" class="btn" style="background: #ff9800; color: white;">
+                                    View Return Request
+                                </a>
+                            <?php else: ?>
+                                <button type="button" 
+                                        class="btn btn-return" 
+                                        data-order-id="<?php echo $order['id']; ?>"
+                                        data-order-number="#<?php echo str_pad($order['id'], 6, '0', STR_PAD_LEFT); ?>"
+                                        style="background: #ff9800; color: white;">
+                                    Request Return
+                                </button>
+                            <?php endif; ?>
                         <?php elseif (canCustomerCancelOrder($order)): ?>
                             <button type="button" 
                                     class="btn btn-danger btn-cancel-modal" 
@@ -1380,10 +2166,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
-</div>
-
+    <?php
+        endforeach;
+        
+        if (!$hasResults && $filter !== 'all') {
+            echo '<div class="no-orders"><p>No orders found with status: ' . htmlspecialchars(ucfirst(str_replace('_', ' ', $filter))) . '</p></div>';
+        }
+    }
+    ?>
+<?php endif; ?>
 </div>
 
 <!-- Delivered Products - Add Reviews Section -->
@@ -1468,6 +2259,142 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="cancel-modal-buttons">
                 <button type="button" class="btn btn-primary close-modal">Keep Order</button>
                 <button type="submit" class="btn btn-danger">Submit & Cancel Order</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Return Request Modal -->
+<div id="returnModal" class="return-modal">
+    <div class="return-modal-content">
+        <button class="close-modal close-return-modal" type="button">&times;</button>
+        <h3>Request Return/Refund</h3>
+        <p>Submit a return request for order <strong id="returnOrderNumber">#000000</strong></p>
+        
+        <form method="POST" action="process-return.php" enctype="multipart/form-data" id="returnForm">
+            <input type="hidden" name="order_id" id="returnOrderId" value="">
+            
+            <!-- Step 1: Main Issue Selection -->
+            <div style="margin: 25px 0;">
+                <label style="display: block; margin-bottom: 15px; font-weight: 600; color: #333; font-size: 1.1rem;">
+                    What happened to your order? <span style="color: #dc3545;">*</span>
+                </label>
+                
+                <div class="issue-options">
+                    <!-- Option 1: Received Damaged Item(s) -->
+                    <div class="issue-card">
+                        <input type="radio" name="main_issue" id="issue_damaged" value="damaged" required>
+                        <label for="issue_damaged" class="issue-label">
+                            <div class="issue-icon">📦💔</div>
+                            <div class="issue-title">Received Damaged Item(s)</div>
+                        </label>
+                        
+                        <!-- Sub-options for Damaged Items -->
+                        <div class="sub-options" id="damaged_suboptions" style="display: none;">
+                            <p style="margin: 10px 0 10px 20px; color: #666; font-weight: 500;">Please select the specific issue:</p>
+                            <div style="margin-left: 30px;">
+                                <div class="radio-option">
+                                    <input type="radio" name="sub_issue" id="damaged_item" value="damaged_item">
+                                    <label for="damaged_item">Damaged item</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" name="sub_issue" id="defective_item" value="defective_item">
+                                    <label for="defective_item">Product is defective or does not work</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Option 2: Received Incorrect Item(s) -->
+                    <div class="issue-card">
+                        <input type="radio" name="main_issue" id="issue_incorrect" value="incorrect" required>
+                        <label for="issue_incorrect" class="issue-label">
+                            <div class="issue-icon">📦❌</div>
+                            <div class="issue-title">Received Incorrect Item(s)</div>
+                        </label>
+                    </div>
+                    
+                    <!-- Option 3: Did Not Receive Some/All Items -->
+                    <div class="issue-card">
+                        <input type="radio" name="main_issue" id="issue_not_received" value="not_received" required>
+                        <label for="issue_not_received" class="issue-label">
+                            <div class="issue-icon">📭</div>
+                            <div class="issue-title">Did Not Receive Some/All of the Items</div>
+                        </label>
+                        
+                        <!-- Sub-options for Not Received -->
+                        <div class="sub-options" id="not_received_suboptions" style="display: none;">
+                            <p style="margin: 10px 0 10px 20px; color: #666; font-weight: 500;">Please select the specific issue:</p>
+                            <div style="margin-left: 30px;">
+                                <div class="radio-option">
+                                    <input type="radio" name="sub_issue" id="parcel_not_delivered" value="parcel_not_delivered">
+                                    <label for="parcel_not_delivered">Parcel not delivered</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" name="sub_issue" id="missing_parts" value="missing_parts">
+                                    <label for="missing_parts">Missing part of the order</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" name="sub_issue" id="empty_parcel" value="empty_parcel">
+                                    <label for="empty_parcel">Empty parcel</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Detailed Reason -->
+            <div style="margin: 20px 0;">
+                <label for="returnReason" style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">
+                    Please provide more details: <span style="color: #dc3545;">*</span>
+                </label>
+                <textarea 
+                    name="return_reason" 
+                    id="returnReason" 
+                    rows="4" 
+                    required
+                    placeholder="Describe the issue in detail (e.g., what damage did you find, what item was incorrect, which items are missing, etc.)"
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"
+                ></textarea>
+            </div>
+
+            <!-- Step 3: Photo Upload -->
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">
+                    Upload Photos (4 required): <span style="color: #dc3545;">*</span>
+                </label>
+                <small style="color: #666; display: block; margin-bottom: 10px;">
+                    Please provide clear photos showing the issue (damaged items, incorrect items, empty box, etc.)
+                </small>
+                <div id="photoUploadArea" class="photo-upload-area">
+                    <i>📷</i>
+                    <p style="margin: 10px 0; color: #666;">Click or drag photos here</p>
+                    <small style="color: #999;">JPG, PNG up to 5MB each</small>
+                </div>
+                <input 
+                    type="file" 
+                    name="return_photos[]" 
+                    id="returnPhotos" 
+                    accept="image/*" 
+                    multiple 
+                    required
+                    style="display: none;">
+                <div id="photoPreviewContainer" class="photo-preview-container"></div>
+            </div>
+
+            <div class="return-warning">
+                <strong>⚠️ Important:</strong>
+                <ul style="margin: 10px 0 0 20px; color: #856404;">
+                    <li>Returns are processed within 3-5 business days</li>
+                    <li>Product must be unused and in original packaging (if damaged/incorrect)</li>
+                    <li>The seller will review your request and photos</li>
+                    <li>You'll be notified via email of the decision</li>
+                </ul>
+            </div>
+            
+            <div class="cancel-modal-buttons" style="margin-top: 25px;">
+                <button type="button" class="btn btn-primary close-return-modal">Cancel</button>
+                <button type="submit" class="btn" style="background: #ff9800; color: white;">Submit Return Request</button>
             </div>
         </form>
     </div>
