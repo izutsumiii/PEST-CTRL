@@ -490,6 +490,14 @@ require_once 'functions.php';
                     </a>
                 </div>
 
+                <div class="section-title hide-on-collapse">Return/Refund Request </div>
+                <div class="nav-links">
+                    <a href="seller-returns.php" data-tooltip="View Return Request">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span class="hide-on-collapse">View Return/Refund</span>
+                    </a>
+                </div>
+
                 <div class="section-title hide-on-collapse">Catalog</div>
                 <div class="nav-links">
                     <div class="nav-dropdown">
